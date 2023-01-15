@@ -1,0 +1,76 @@
+
+
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: docker-registry.cityapl.com/cityapl_auth_service
+    command: sh -c "python manage.py makemigrations &&
+                    python manage.py migrate &&
+                    python manage.py collectstatic --no-input &&
+                    gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    volumes:
+      - .:/app
+      - staticfiles:/app/static/
+    expose:
+      - 8000
+    restart: "on-failure"
+
+  nginx:
+    build:
+      context: .
+      dockerfile: config/nginx/Dockerfile
+    image: docker-registry.cityapl.com/nginx_cityapl_auth_service
+    ports:
+      - 81:80
+      - 443:443
+    volumes:
+      - staticfiles:/app/static/
+    depends_on:
+      - web
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6377:6379
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: docker-registry.cityapl.com/celery_worker_cityapl_auth_service
+    command: /start-celeryworker
+    volumes:
+      - .:/app
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    image: docker-registry.cityapl.com/celery_beat_cityapl_auth_service
+    command: /start-celerybeat
+    depends_on:
+      - celery_worker
+      - redis
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    image: docker-registry.cityapl.com/celery_flower_cityapl_auth_service
+    command: /start-flower
+    ports:
+      - 5557:5555
+    depends_on:
+      - celery_worker
+      - redis
+
+volumes:
+  staticfiles:

@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from apps.payment.serializers import PaymentIntentCreateSerializer
 from apps.payment.utils.stripe import Stripe
 from apps.payment.utils.webhooks import StripeWebhook
+from utils.response import response
 
 
 class StripePaymentView(View):
@@ -61,19 +62,23 @@ class StripePaymentAPIView(APIView):
     """
     Create Payment intent
     """
-
     def post(self, request, *args, **kwargs):
         """
         """
+        user = request.user
         serializer = PaymentIntentCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         # stripe payment
         stripe_obj = Stripe()
-        response = stripe_obj.create_payment_intent(
+        resp = stripe_obj.create_payment_intent(
+            user=user,
             amount=serializer.validated_data.get('amount'),
             currency=settings.DEFAULT_CURRENCY,
+            service_type=serializer.validated_data.get("service_type"),
+            recharge_number=serializer.validated_data.get("recharge_number"),
+            recharge_type=serializer.validated_data.get("recharge_type")
         )
-        return Response(response, response['status_code'])
+        return response(message=resp["detail"], status_code=resp['status_code'], data=resp["data"])
 
 
 class StripeWebhookAPIView(APIView):
@@ -88,11 +93,8 @@ class StripeWebhookAPIView(APIView):
         webhook_obj = StripeWebhook()
         event_type = webhook_obj.get_event(data)
         if event_type:
-            if event_type == 'account.updated':
-                webhook_obj.connect_account_update_hook(data)
-            elif event_type == 'payment_intent.succeeded':
-                webhook_obj.connect_payment_update_hook(data)
-            elif event_type == 'payment_intent.payment_failed':
+            if event_type in ('payment_intent.succeeded',
+                              'payment_intent.payment_failed', 'payment_intent.processing'):
                 webhook_obj.connect_payment_update_hook(data)
 
         return Response(status=204)

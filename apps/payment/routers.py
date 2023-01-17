@@ -10,7 +10,7 @@ from apps.payment.views import StripePaymentAPIView, StripeWebhookAPIView, Strip
 router = SimpleRouter()
 
 urlpatterns = [
-    path('stripe/create/intent', StripePaymentAPIView.as_view(), name='stripe-create-intent'),
+    path('stripe/initiate', StripePaymentAPIView.as_view(), name='stripe-initiate-payment'),
     path('stripe/webhook', StripeWebhookAPIView.as_view(), name='stripe-webhook'),
     path('stripe/payment', StripePaymentView.as_view(), name='stripe-payment'),
 

@@ -5,12 +5,12 @@ from django.urls import re_path, path
 
 from rest_framework.routers import SimpleRouter
 
-from apps.orders.views import TestAPIView
+from apps.orders.views import PlaceOrderAPIView
 
 router = SimpleRouter()
 
 urlpatterns = [
-    path('place', TestAPIView.as_view(), name='stripe-webhook'),
+    path('place', PlaceOrderAPIView.as_view(), name='order-place'),
 ]
 
 urlpatterns += router.urls

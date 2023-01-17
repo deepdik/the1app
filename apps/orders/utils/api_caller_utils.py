@@ -24,6 +24,8 @@ async def request_multiple_urls(urls: List[str]):
 
 
 async def request_url(url: str, method: APIMethodEnum, params: dict = None, data=None):
+    """
+    """
     json_response = None
     status_code = 0
     async with aiohttp.ClientSession() as session:

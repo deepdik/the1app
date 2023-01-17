@@ -14,10 +14,23 @@ class APIMethodEnum(str, Enum):
     PATCH = 'patch'
 
 
-class OrderDetail(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_')
-    credit_points = models.IntegerField(default=0)
-    updated_on = models.DateTimeField(null=True, blank=True)
+class AccessTokens(models.Model):
+    access_token = models.TextField()
+    valid_upto = models.DateTimeField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'access_tokens'
 
     def __str__(self):
-        return str(self.user.id) + '-' + str(self.id)
+        return str(self.id)
+
+
+
+# class OrderDetail(models.Model):
+#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_orders')
+#     credit_points = models.IntegerField(default=0)
+#     updated_on = models.DateTimeField(null=True, blank=True)
+#
+#     def __str__(self):
+#         return str(self.user.id) + '-' + str(self.id)

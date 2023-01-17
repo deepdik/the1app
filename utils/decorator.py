@@ -23,8 +23,8 @@ def exception_handler(func):
                         + str(e)
                         )
             return {
-                'detail': e.error.message,
-                'data': {},
-                'status_code': 400}
+                'detail': str(e.error.message),
+                'data': None,
+                'status_code': 500}
 
     return wrap

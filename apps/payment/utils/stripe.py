@@ -71,17 +71,16 @@ class Stripe(object):
         return data
 
     def __get_or_create_customer(self, user):
-        customer = stripe.Customer.create(
-            address='Text address',
-            email=user.email,
-            metadata={},
-            name=user.first_name
-        )
         objs = StripeCustomer.objects.filter(user=user)
         if objs.exists():
             return objs[0].customer_id
 
-
+        customer = stripe.Customer.create(
+            address={"line1":'Text address'},
+            email=user.email,
+            metadata={},
+            name=user.first_name
+        )
 
         obj, created = StripeCustomer.objects.create(
             user_id=user.id,

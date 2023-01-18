@@ -7,8 +7,10 @@ from the1backend.settings import BASE_DIR
 env = environ.Env()
 # reading .env file
 if os.environ.get("ENV") == 'DEV':
+    print("Started with DEV env")
     environ.Env.read_env(os.path.join(BASE_DIR, 'config/environ/dev.env'))
 else:
+    print("Started with local env")
     environ.Env.read_env(os.path.join(BASE_DIR, 'config/environ/local.env'))
 
 """

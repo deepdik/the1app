@@ -18,6 +18,8 @@ services:
       - staticfiles:/app/static/
     ports:
       - 8002:8002
+    network_mode: "host"
+
     restart: "on-failure"
 
 #  nginx:

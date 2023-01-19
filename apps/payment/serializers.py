@@ -1,16 +1,8 @@
 from rest_framework import serializers
 
+from apps.orders.models import SERVICE_CHOICES, RECHARGE_TYPE
 from utils.exceptions import APIException400, APIException500
 
-SERVICE_CHOICES = (
-    ("1", "DU_PREPAID"),
-    ("2", "DU_POSTPAID"),
-)
-
-RECHARGE_TYPE = (
-    ("1", "DATA"),
-    ("2", "MINUTE")
-)
 
 
 class PaymentIntentCreateSerializer(serializers.Serializer):

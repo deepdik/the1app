@@ -10,12 +10,20 @@ class GeneralAPIClient:
         self.base_url = settings.MBME_BASE_URL
 
     def verify_customer_account(self):
+        """Use API Method balance to verify the consumer's account using the unique
+            transaction Id."""
         payload = {
-            "username": settings.MBME_PAY_USERNAME,
-            "password": settings.MBME_PAY_PASSWORD
-        }
+                "transactionId": "191217984****89166",
+                "merchantId": settings.MBME_MERCHANT_ID,
+                "merchantLocation": "FEWA RAK HQ",
+                "serviceId": "1",
+                "method": "balance",
+                "lang": "en",
+                "reqField1": "0559035788"
+            }
         resp, status = await async_api_caller(
             url=self.base_url + settings.MBME_AUTH_TOKEN,
             method=APIMethodEnum.POST,
             data=payload
         )
+

@@ -66,7 +66,8 @@ class Stripe(object):
         data = {
             "payment_intent": intent['id'],
             "customer": customer_id,
-            "publish_key": settings.STRIP_PUBLISHABLE_KEY
+            "publish_key": settings.STRIP_PUBLISHABLE_KEY,
+            "client_secret": intent["client_secret"]
         }
         return data
 

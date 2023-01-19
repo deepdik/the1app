@@ -18,13 +18,18 @@ def exception_handler(func):
                 'detail': 'success',
                 'data': res,
                 'status_code': 200}
+
+        except TypeError as e:
+            return {
+                'detail': str(e),
+                'data': None,
+                'status_code': 500}
+
         except Exception as e:
-            logger.info("Stripe API Error:-"
-                        + str(e)
-                        )
             return {
                 'detail': str(e.error.message),
                 'data': None,
                 'status_code': 500}
+
 
     return wrap

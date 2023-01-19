@@ -1,13 +1,30 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+from apps.orders.models import Orders
 
-# Create your models here.
+
+TRANSACTION_STATUS = (
+    ("1", "PROCESSING"),
+    ("2", "FAILED"),
+    ("3", "COMPLETED"),
+    ("4", "CANCELLED")
+)
 
 
 class StripeCustomer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='stripe_customer')
     customer_id = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class StripeTransactions(models.Model):
+    order_id = models.ForeignKey(Orders, on_delete=models.CASCADE, related_name='payment')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_payment')
+    payment_intent = models.CharField(max_length=500)
+    gateway_response = models.TextField()
+    status = models.CharField(max_length=50, choices=TRANSACTION_STATUS)
+    updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 

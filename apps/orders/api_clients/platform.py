@@ -40,3 +40,6 @@ class GeneralAPIClient:
             return True
         else:
             return False
+
+    def get_all_transaction_report(self, from_date, to_date):
+        pass

@@ -55,19 +55,20 @@ class Stripe(object):
                 'enabled': True,
             },
             customer=customer_id,
-            description="Payment for Order",
+            description="Payment for mobile recharge",
             receipt_email=receipt_email,
             metadata=meta_data,
             # setup_future_usage='on_session',
             return_url=None,
         )
-        # payment_link = (settings.SITE_URL + reverse('stripe-payment')
+        # data = (settings.SITE_URL + reverse('stripe-payment')
         #                 + '?intent_id=' + intent['id'])
         data = {
             "payment_intent": intent['id'],
             "customer": customer_id,
             "publish_key": settings.STRIP_PUBLISHABLE_KEY,
-            "client_secret": intent["client_secret"]
+            "client_secret": intent["client_secret"],
+            "ephemeralKey": self.get_ephemeralKey(customer_id)
         }
         return data
 
@@ -89,6 +90,14 @@ class Stripe(object):
         )
 
         return obj.customer_id
+
+
+    def get_ephemeralKey(self, customer_id):
+        ephemeralKey = stripe.EphemeralKey.create(
+            customer=customer_id,
+            stripe_version='2022-11-15',
+        )
+        return ephemeralKey["secret"]
 
     def retrive_payment_intent(self, *args, **kwargs):
         """

@@ -413,13 +413,7 @@ form.addEventListener('submit', function(event) {
   stripe.confirmCardPayment("{{client_secret}}", {
     payment_method: {
       card: cardElement,
-      billing_details: {
-        name: name,
-        address: {
-          line1: address+', '+country
-        },
-        email: email,
-      }
+
     },
     setup_future_usage: 'off_session'
   }).then(function(result) {

@@ -30,14 +30,9 @@ class StripePaymentView(View):
                 intent_id=intent_id
             )
             # if invoice is already paid then cancel the intent
-            # web_obj = StripeWebhook()
-            # if (web_obj.retrive_invoice_detail(
-            #     response['data']['metadata']['invoice_id'])):
-            #     # cancel the intent
-            #     context['paid'] = True
-            #     if response['data'].get('status') != 'canceled':
-            #         response = stripe_obj.cancel_payment_intent(
-            #             intent_id=intent_id)
+            # if response.get('status') != 'canceled':
+            #     response = stripe_obj.cancel_payment_intent(
+            #         intent_id=intent_id)
 
             print(response)
             if response.get('status') in ("requires_payment_method", "requires_source"):

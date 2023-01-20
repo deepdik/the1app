@@ -64,18 +64,22 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
                 valid_upto__gt=datetime.datetime.now()
             )
             if not qs.exists():
-                status, message = DUPrepaidAPIClient().verify_customer_account(recharge_number)
-                # save in DB
-                MBMEVerifiedNumbers.objects.update_or_create(
-                    service_type=service_type,
-                    recharge_type=recharge_type,
-                    recharge_number=recharge_number,
-                    defaults={"valid_upto": datetime.datetime.now() + datetime.timedelta(days=1)}
-                )
-                if not status:
-                    raise APIException400({
-                        "error": message
-                    })
+                raise APIException400({
+                    "error": "Invalid mobile number"
+                })
+
+                # status, message = DUPrepaidAPIClient().verify_customer_account(recharge_number)
+                # # save in DB
+                # MBMEVerifiedNumbers.objects.update_or_create(
+                #     service_type=service_type,
+                #     recharge_type=recharge_type,
+                #     recharge_number=recharge_number,
+                #     defaults={"valid_upto": datetime.datetime.now() + datetime.timedelta(days=1)}
+                # )
+                # if not status:
+                #     raise APIException400({
+                #         "error": message
+                #     })
 
         return attrs
 

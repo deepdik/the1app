@@ -74,6 +74,8 @@ class AvailableRecharge(models.Model):
     recharge_type = models.CharField(max_length=100, choices=RECHARGE_TYPE)
     currency = models.CharField(max_length=20)
     detail = models.CharField(max_length=100)
+    full_description = models.TextField(blank=True)
+    validity = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)

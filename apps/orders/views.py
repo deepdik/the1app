@@ -32,7 +32,7 @@ class AvailableRechargeAPIView(APIView):
         if service_type:
             data = AvailableRecharge.objects.filter(
                 is_active=True, service_type=service_type).values(
-                "amount", "currency", "detail").order_by('amount')
+                "amount", "currency", "detail", "validity", "full_description").order_by('amount')
             resp = {"data_recharge": data}
             return response(message="success", data=resp)
         raise APIException400({

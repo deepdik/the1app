@@ -62,6 +62,7 @@ class StripePaymentAPIView(APIView):
     """
     Create Payment intent
     """
+
     def post(self, request, *args, **kwargs):
         """
         """

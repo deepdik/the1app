@@ -33,7 +33,6 @@ ORDER_SUB_STATUS = (
     ('6', 'RECHARGE_COMPLETED')
 )
 
-
 ORDER_STATUS = (
     ('1', 'COMPLETED'),
     ('2', 'PROCESSING'),
@@ -54,12 +53,28 @@ class AccessTokens(models.Model):
         return str(self.id)
 
 
+class MBMEVerifiedNumbers(models.Model):
+    service_type = models.CharField(max_length=100, choices=SERVICE_CHOICES)
+    recharge_type = models.CharField(max_length=100, choices=RECHARGE_TYPE)
+    recharge_number = models.CharField(max_length=10)
+    valid_upto = models.DateTimeField()
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'mbme_verified_numbers'
+
+    def __str__(self):
+        return str(self.id)
+
+
 class AvailableRecharge(models.Model):
     amount = models.FloatField()
     service_type = models.CharField(max_length=100, choices=SERVICE_CHOICES)
     recharge_type = models.CharField(max_length=100, choices=RECHARGE_TYPE)
     currency = models.CharField(max_length=20)
     detail = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -83,6 +98,7 @@ class Orders(models.Model):
 
     class Meta:
         db_table = 'orders'
+
     def __str__(self):
         return str(self.user.id) + '-' + str(self.id)
 

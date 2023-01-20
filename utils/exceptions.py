@@ -8,7 +8,12 @@ class APIException400(APIException):
 
 class APIException500(APIException):
     status_code = 500
-    message = "Internal server error. Please try after some time"
+    detail = "Internal server error. Please try after some time"
+
+
+class APIException503(APIException):
+    status_code = 503
+    detail = "Service is not available. Please try after some time"
 
 
 def custom_exception_handler(exc, context):

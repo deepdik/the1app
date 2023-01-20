@@ -1,3 +1,5 @@
+from datetime import datetime
+from random import randint
 
 
 def get_transaction_id():
@@ -6,4 +8,4 @@ def get_transaction_id():
     ex: if Kiosk ID Id is 2050,and the generated random number is 4 then the transaction
     ID will be 2011041320223242050 which generated 2020 November 4th 1.20 PM and 22 second 32 microseconds.
     """
-    pass
+    return datetime.now().strftime("%y%m%d%H%M%S%f")+str(randint(0, 9))+"2050"

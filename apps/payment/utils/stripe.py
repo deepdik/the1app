@@ -50,10 +50,10 @@ class Stripe(object):
         intent = stripe.PaymentIntent.create(
             amount=int(amount * 100),
             currency=currency,
-            payment_method_types=['card'],
-            # automatic_payment_methods={
-            #     'enabled': True,
-            # },
+            # payment_method_types=['card'],
+            automatic_payment_methods={
+                'enabled': True,
+            },
             customer=customer_id,
             description="Payment for Order",
             receipt_email=receipt_email,
@@ -83,7 +83,7 @@ class Stripe(object):
             name=user.first_name
         )
 
-        obj, created = StripeCustomer.objects.create(
+        obj = StripeCustomer.objects.create(
             user_id=user.id,
             customer_id=customer.id,
         )

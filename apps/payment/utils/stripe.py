@@ -68,7 +68,7 @@ class Stripe(object):
             "customer": customer_id,
             "publish_key": settings.STRIP_PUBLISHABLE_KEY,
             "client_secret": intent["client_secret"],
-            "ephemeralKey": self.get_ephemeralKey(customer_id)
+            "ephemeral_key": self.get_ephemeralKey(customer_id)
         }
         return data
 

@@ -70,7 +70,7 @@ class OrderService:
                             recharge_status = COMPLETED
                             msg = success_msg
                         else:
-                            recharge_status = RECHARGE_PROCESSING
+                            recharge_status = PROCESSING
                             msg = in_process_msg
 
                 self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_COMPLETED)

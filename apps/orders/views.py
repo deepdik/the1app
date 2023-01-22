@@ -1,13 +1,9 @@
-from asgiref.sync import async_to_sync
-from django.shortcuts import render
+
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.orders.api_clients.platform import GeneralAPIClient
-from apps.orders.models import APIMethodEnum, AvailableRecharge, SERVICES_PROVIDER, MBME, Orders
-from apps.orders.serializers import PlaceOrderSerializer, AvailableRechargeListSerializer, OrderListSerializer
-from apps.orders.utils.general_service import GeneralAPIService
+from apps.orders.models import AvailableRecharge, MBME, Orders
+from apps.orders.serializers import PlaceOrderSerializer, OrderListSerializer
 from apps.orders.utils.order_place_service import OrderService
 from utils.exceptions import APIException400
 from utils.response import response

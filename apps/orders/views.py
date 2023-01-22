@@ -42,7 +42,7 @@ class OrdersHistoryAPIView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
-        qs = Orders.objects.filter(user=request.user).order_by("created_at")
+        qs = Orders.objects.filter(user=request.user).order_by("-created_at")
         data = OrderListSerializer(qs, many=True).data
         return response(message="success", data=data)
 

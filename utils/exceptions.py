@@ -6,6 +6,11 @@ class APIException400(APIException):
     status_code = 400
 
 
+class APIException404(APIException):
+    status_code = 404
+    detail = "resource nat found"
+
+
 class APIException500(APIException):
     status_code = 500
     detail = "Internal server error. Please try after some time"

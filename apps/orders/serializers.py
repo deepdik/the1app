@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
-from apps.orders.models import AvailableRecharge
-from utils.exceptions import APIException400
+from apps.orders.models import AvailableRecharge, Orders
 
 
 class PlaceOrderSerializer(serializers.Serializer):
@@ -9,8 +8,6 @@ class PlaceOrderSerializer(serializers.Serializer):
     Serializer to create order.
     """
     payment_intent_id = serializers.CharField()
-
-    # order_id = serializers.CharField()
 
     class Meta:
         fields = ('payment_intent_id',)
@@ -22,3 +19,8 @@ class AvailableRechargeListSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class OrderListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Orders
+        fields = ("created_at", "status", "amount", "recharge_number",
+                  "service_type", "recharge_type")

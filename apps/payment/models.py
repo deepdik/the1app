@@ -3,12 +3,12 @@ from django.contrib.auth.models import User
 
 from apps.orders.models import Orders
 
-
+TRANSACTION_PROCESSING, TRANSACTION_FAILED, TRANSACTION_COMPLETED, TRANSACTION_CANCELLED = "1", "2", "3", "4"
 TRANSACTION_STATUS = (
-    ("1", "PROCESSING"),
-    ("2", "FAILED"),
-    ("3", "COMPLETED"),
-    ("4", "CANCELLED")
+    (TRANSACTION_PROCESSING, "PROCESSING"),
+    (TRANSACTION_FAILED, "FAILED"),
+    (TRANSACTION_COMPLETED, "COMPLETED"),
+    (TRANSACTION_CANCELLED, "CANCELLED")
 )
 
 
@@ -19,7 +19,7 @@ class StripeCustomer(models.Model):
 
 
 class StripeTransactions(models.Model):
-    order_id = models.ForeignKey(Orders, on_delete=models.CASCADE, related_name='payment')
+    order = models.ForeignKey(Orders, on_delete=models.CASCADE, related_name='payment')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_payment')
     payment_intent = models.CharField(max_length=500)
     gateway_response = models.TextField()

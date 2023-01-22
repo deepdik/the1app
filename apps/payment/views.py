@@ -6,6 +6,7 @@ from django.views import View
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.orders.models import SERVICES_PROVIDER
 from apps.payment.serializers import PaymentIntentCreateSerializer
 from apps.payment.utils.stripe import Stripe
 from apps.payment.utils.webhooks import StripeWebhook
@@ -35,10 +36,9 @@ class StripePaymentView(View):
             #         intent_id=intent_id)
 
             print(response)
-            if response.get('status') in ("requires_payment_method", "requires_source"):
-
-                secret_id = response['client_secret']
-                amount = response['metadata']['amount']
+            if response["data"].get('status') in ("requires_payment_method", "requires_source"):
+                secret_id = response["data"]['client_secret']
+                amount = response["data"]['metadata']['amount']
             else:
                 print(response)
                 return render(request, 'expire.html', context)
@@ -72,7 +72,8 @@ class StripePaymentAPIView(APIView):
             currency=settings.DEFAULT_CURRENCY,
             service_type=serializer.validated_data.get("service_type"),
             recharge_number=serializer.validated_data.get("recharge_number"),
-            recharge_type=serializer.validated_data.get("recharge_type")
+            recharge_type=serializer.validated_data.get("recharge_type"),
+            service_provider=SERVICES_PROVIDER[0][0],
         )
         return response(message=resp["detail"], status_code=resp['status_code'], data=resp["data"])
 

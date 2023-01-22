@@ -14,7 +14,6 @@ class StripeWebhook:
     stripe.api_key = settings.STRIPE_CLIENT_SECRET
 
     EVENT_TYPES = (
-        'account.updated',
         'payment_intent.succeeded',
         'payment_intent.payment_failed'
     )
@@ -40,28 +39,17 @@ class StripeWebhook:
         """
         """
         try:
-            self.connect_db()
-            if self.cursor:
-                object_data = data['data']['object']
-                # log incomming data
-                pylogging.logger_info(str(object_data))
-                if object_data['status'] == 'succeeded':
-                    self._save_inv_payment_detail(
-                        data=object_data
-                    )
-                self._create_transaction_detail(
+            object_data = data['data']['object']
+            # log incoming data
+            print(object_data)
+            if object_data['status'] == 'succeeded':
+                self._create_or_update_transaction_detail(
                     data=object_data
                 )
         except Exception as e:
-            pylogging.logger_info("Webhook Error:: <event_type::payment_intent> :: "
-                                  + str(e)
-                                  )
-        pylogging.logger_info("Webhook Success <event_type::{}>".format(
-            data['type']))
-        self.db_connection.close()
+            print(f"Webhook Error:: <event_type::payment_intent> :: {e}")
 
-
-    def _create_transaction_detail(self, *args, **kwargs):
+    def _create_or_update_transaction_detail(self, *args, **kwargs):
         """
         To save transactions details
         """

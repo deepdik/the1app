@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.orders.models import AccessTokens, AvailableRecharge, Orders, MbmeOrderHistory, MBMEVerifiedNumbers
+from apps.orders.models import AccessTokens, AvailableRecharge, Orders, InProcessOrders, VerifiedNumbers
 
 
 # Register your models here.
@@ -21,9 +21,9 @@ class OrdersAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', "service_type", "recharge_type", "status")
 
 
-@admin.register(MbmeOrderHistory)
+@admin.register(InProcessOrders)
 class OrdersAdmin(admin.ModelAdmin):
     list_display = ('id', 'order', "transaction_id",)
 
 
-admin.site.register(MBMEVerifiedNumbers)
+admin.site.register(VerifiedNumbers)

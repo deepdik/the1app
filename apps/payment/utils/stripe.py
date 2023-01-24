@@ -7,7 +7,7 @@ from django.urls import reverse
 
 import logging
 
-from apps.payment.models import StripeCustomer, StripeTransactions
+from apps.payment.models import StripeCustomer, PaymentTransactions
 from utils.decorator import exception_handler
 
 # Get an instance of a logger
@@ -44,6 +44,7 @@ class Stripe(object):
             'recharge_number': kwargs.get("recharge_number"),
             "service_provider": kwargs.get("service_provider"),
             'recharge_type': kwargs.get("recharge_type"),
+            'recharge_transaction_id': kwargs.get("recharge_transaction_id"),
             'amount': amount,
             'currency': currency,
         }

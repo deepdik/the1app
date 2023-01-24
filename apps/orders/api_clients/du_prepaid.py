@@ -1,4 +1,3 @@
-from asgiref.sync import async_to_sync
 from django.conf import settings
 
 from apps.orders.api_clients.platform import GeneralAPIClient

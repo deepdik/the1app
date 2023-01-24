@@ -80,6 +80,26 @@ class VerifiedNumbers(models.Model):
         return str(self.id)
 
 
+class PostpaidAccountBalance(models.Model):
+    service_type = models.CharField(max_length=100, choices=SERVICE_CHOICES)
+    recharge_type = models.CharField(max_length=100, choices=RECHARGE_TYPE, blank=True, null=True)
+    service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)
+    recharge_number = models.CharField(max_length=10)
+    balance = models.CharField(max_length=10)
+    customer_name = models.CharField(max_length=200, blank=True, null=True)
+    response = models.JSONField(blank=True, null=True)
+    valid_upto = models.DateTimeField()
+    recharge_transaction_id = models.CharField(max_length=500, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'postpaid_account_balance'
+
+    def __str__(self):
+        return str(self.id)
+
+
 class AvailableRecharge(models.Model):
     amount = models.FloatField()
     service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)
@@ -119,8 +139,8 @@ class Orders(models.Model):
         return str(self.user.id) + '-' + str(self.id)
 
 
-class InProcessOrders(models.Model):
-    order = models.ForeignKey(Orders, on_delete=models.CASCADE, related_name='in_process_orders')
+class OrdersDetails(models.Model):
+    order = models.ForeignKey(Orders, on_delete=models.CASCADE, related_name='order_detail')
     retry_count = models.IntegerField()
     last_response = models.JSONField(blank=True, null=True)
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
@@ -132,7 +152,7 @@ class InProcessOrders(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'in_process_order'
+        db_table = 'orders_details'
 
     def __str__(self):
         return str(self.id)

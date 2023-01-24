@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from apps.orders.api_clients.du_prepaid import DUPrepaidAPIClient
 from apps.orders.models import SERVICE_CHOICES, RECHARGE_TYPE, AvailableRecharge, VerifiedNumbers, SERVICES_PROVIDER, \
-    MBME, DU_PREPAID, MINUTE, DATA
+    MBME, DU_PREPAID, MINUTE, DATA, Orders, DU_POSTPAID
 from utils.exceptions import APIException400, APIException500
 
 
@@ -18,7 +18,8 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
     amount = serializers.FloatField()
     service_type = serializers.ChoiceField(choices=SERVICE_CHOICES)
     recharge_number = serializers.CharField(max_length=10)
-    recharge_type = serializers.ChoiceField(choices=RECHARGE_TYPE)
+    recharge_type = serializers.ChoiceField(choices=RECHARGE_TYPE, allow_blank=True, allow_null=True)
+    recharge_transaction_id = serializers.CharField(allow_blank=True, allow_null=True)
 
     def validate_recharge_number(self, value):
         if not value.isdigit():
@@ -36,8 +37,19 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
         recharge_type = attrs["recharge_type"]
         amount = attrs["amount"]
         recharge_number = attrs["recharge_number"]
+        #DU postpaid
+        if service_type == DU_POSTPAID and not attrs.get("recharge_transaction_id"):
+            raise APIException400({
+                "error": f"recharge_transaction_id is required for DU Postpaid"
+            })
+
         # for DU prepaid
         if service_type == DU_PREPAID:
+            if not recharge_type:
+                raise APIException400({
+                    "error": f"recharge_type is required for DU Prepaid"
+                })
+
             if recharge_type == MINUTE and (
                     amount < int(settings.DU_PREPAID_MIN) or amount > int(settings.DU_PREPAID_MAX)):
                 raise APIException400({
@@ -85,3 +97,9 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
 
     class Meta:
         fields = ('amount', 'service_type', 'recharge_number', 'recharge_type')
+
+
+# class PaymentListSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model =
+#         fields =

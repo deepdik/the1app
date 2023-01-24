@@ -2,11 +2,12 @@ from django.conf import settings
 from django.shortcuts import render
 from django.urls import reverse
 from django.views import View
+from rest_framework import viewsets
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.orders.models import SERVICES_PROVIDER
+from apps.orders.models import SERVICES_PROVIDER, Orders
 from apps.payment.serializers import PaymentIntentCreateSerializer
 from apps.payment.utils.stripe import Stripe
 from apps.payment.utils.webhooks import StripeWebhook
@@ -74,6 +75,7 @@ class StripePaymentAPIView(APIView):
             recharge_number=serializer.validated_data.get("recharge_number"),
             recharge_type=serializer.validated_data.get("recharge_type"),
             service_provider=SERVICES_PROVIDER[0][0],
+            recharge_transaction_id=serializer.validated_data.get('recharge_transaction_id')
         )
         return response(message=resp["detail"], status_code=resp['status_code'], data=resp["data"])
 
@@ -95,3 +97,29 @@ class StripeWebhookAPIView(APIView):
                 webhook_obj.connect_payment_update_hook(data)
 
         return Response(status=204)
+
+
+# class PaymentListViewset(viewsets.ModelViewSet):
+#     """
+#     """
+#     queryset = Orders.objects.filter()
+#     serializer_class = InstructionSerializer
+#     search_fields = ('key_text', 'customer__company')
+#     permission_classes = (permissions.IsAuthenticated,)
+#     ordering = ('-created_at',)
+#     filter_fields = ('condition', 'applied_on', 'customer', 'action')
+#
+#     def filter_queryset(self, queryset):
+#         queryset = super().filter_queryset(queryset)
+#         queryset = queryset.filter(
+#             coc_file_name__isnull=True
+#         ).exclude(
+#             applied_on=CustomerInstruction.TEST
+#         )
+#
+#         return queryset
+#
+#     def perform_destroy(self, instance):
+#         instance.is_deleted = True
+#         instance.deleted_on = timezone.now()
+#         instance.save()

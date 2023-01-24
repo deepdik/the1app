@@ -6,7 +6,7 @@ from .models import *
 
 admin.site.register(UserCreditPoint)
 admin.site.register(CreditPointTransaction)
-admin.site.register(StripeTransactions)
+admin.site.register(PaymentTransactions)
 admin.site.register(StripeCustomer)
 
 

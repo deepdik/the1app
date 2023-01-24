@@ -1,9 +1,11 @@
-
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from apps.orders.api_clients.du_postpaid import DUPostpaidAPIClient
 from apps.orders.models import AvailableRecharge, MBME, Orders
 from apps.orders.serializers import PlaceOrderSerializer, OrderListSerializer
+from apps.orders.utils.order_history_service import OrderHistory
 from apps.orders.utils.order_place_service import OrderService
 from utils.exceptions import APIException400
 from utils.response import response
@@ -38,12 +40,34 @@ class AvailableRechargeAPIView(APIView):
         })
 
 
-class OrdersHistoryAPIView(APIView):
+class OrdersHistoryListAPIView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
-        qs = Orders.objects.filter(user=request.user).order_by("-created_at")
-        data = OrderListSerializer(qs, many=True).data
+        data = OrderHistory(request).get_order_list()
         return response(message="success", data=data)
 
 
+class OrdersHistoryDetailAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        if not self.request.GET.get('order_id'):
+            raise APIException400({
+                "error": "order_id is required"
+            })
+        data = OrderHistory(request).get_order_detail()
+        return response(message="success", data=data)
+
+
+class CustomerBalanceAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        number = self.request.GET.get('number')
+        if number:
+            data = DUPostpaidAPIClient().get_customer_balance(number)
+            return response(message="success", data=data)
+        raise APIException400({
+            "error": "number is required"
+        })

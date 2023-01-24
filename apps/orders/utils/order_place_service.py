@@ -2,12 +2,13 @@ import datetime
 
 from django.conf import settings
 
+from apps.orders.api_clients.du_postpaid import DUPostpaidAPIClient
 from apps.orders.api_clients.du_prepaid import DUPrepaidAPIClient
 from apps.orders.api_clients.platform import GeneralAPIClient
-from apps.orders.models import Orders, InProcessOrders, FAILED, PAYMENT_FAILED, PROCESSING, RECHARGE_PROCESSING, \
-    COMPLETED, PAYMENT_PROCESSING, DATA, MINUTE, RECHARGE_COMPLETED, RECHARGE_FAILED, MBME, DU_PREPAID
-from apps.payment.models import StripeTransactions, TRANSACTION_FAILED, TRANSACTION_CANCELLED, TRANSACTION_PROCESSING, \
-    TRANSACTION_COMPLETED
+from apps.orders.models import Orders, OrdersDetails, FAILED, PAYMENT_FAILED, PROCESSING, RECHARGE_PROCESSING, \
+    COMPLETED, PAYMENT_PROCESSING, DATA, MINUTE, RECHARGE_COMPLETED, RECHARGE_FAILED, MBME, DU_PREPAID, DU_POSTPAID
+from apps.payment.models import PaymentTransactions, TRANSACTION_FAILED, TRANSACTION_CANCELLED, TRANSACTION_PROCESSING, \
+    TRANSACTION_COMPLETED, STRIPE
 from apps.payment.utils.stripe import Stripe
 from utils.exceptions import APIException500, APIException400
 from django.db.models import F
@@ -30,12 +31,20 @@ class OrderService:
                          "that will be refunded"
             success_msg = "Recharge successful"
             in_process_msg = "We are processing your recharge. It may take some time."
+            payment_method = ""
+            payment_method_data = self.payload["data"].get("charges", {}).get("data", {})
+            print(payment_method_data)
+            if payment_method_data:
+                payment_method = payment_method_data[0].get("payment_method_details",{}).get(
+                    payment_method_data[0].get("payment_method_details",{}).get("type"), {}).get("funding")
+                print(payment_method)
+
             if self.payload["data"].get('status') in ('canceled', 'payment_failed'):
                 # Mark failed the order
                 order = self.save_order(
                     self.payload["data"]["metadata"], FAILED, PAYMENT_FAILED
                 )
-                self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_FAILED)
+                self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_FAILED, payment_method)
                 return FAILED, failed_msg
 
             elif self.payload["data"].get('status') in ("requires_payment_method", "requires_source", 'requires_action',
@@ -47,7 +56,7 @@ class OrderService:
                 order = self.save_order(
                     self.payload["data"]["metadata"], FAILED, PAYMENT_FAILED
                 )
-                self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_CANCELLED)
+                self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_CANCELLED, payment_method)
                 return FAILED, failed_msg
 
             elif self.payload["data"].get('status') == 'processing':
@@ -57,15 +66,15 @@ class OrderService:
                 )
                 # put in processing queue
                 self.save_in_progress_order(order, 1, {})
-                self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_PROCESSING)
+                self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_PROCESSING, payment_method)
                 return PROCESSING, in_process_msg
 
             elif self.payload["data"].get('status') == 'succeeded':
                 recharge_status = PROCESSING
                 order = None
                 if self.payload["data"]["metadata"].get('service_provider') == MBME:
-                    if self.payload["data"]["metadata"].get('service_type') == DU_PREPAID:
-                        order, status = self.place_du_prepaid_orders()
+                    if self.payload["data"]["metadata"].get('service_type') in (DU_PREPAID, DU_POSTPAID):
+                        order, status = self.place_du_recharge_orders()
                         if status == RECHARGE_COMPLETED:
                             recharge_status = COMPLETED
                             msg = success_msg
@@ -73,7 +82,7 @@ class OrderService:
                             recharge_status = PROCESSING
                             msg = in_process_msg
 
-                self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_COMPLETED)
+                self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_COMPLETED, payment_method)
                 return recharge_status, msg
             else:
                 raise APIException500()
@@ -90,28 +99,42 @@ class OrderService:
             # return PROCESSING
             raise APIException400({"error": self.payload["detail"]})
 
-    def place_du_prepaid_orders(self):
+    def place_du_recharge_orders(self):
         """
         """
-        if self.payload["data"]["metadata"]["recharge_type"] == DATA:
-            recharge_type = 'data'
-        elif self.payload["data"]["metadata"]["recharge_type"] == MINUTE:
-            recharge_type = 'time'
+        if self.payload["data"]["metadata"].get('service_type') == DU_PREPAID:
+            if self.payload["data"]["metadata"]["recharge_type"] == DATA:
+                recharge_type = 'data'
+            elif self.payload["data"]["metadata"]["recharge_type"] == MINUTE:
+                recharge_type = 'time'
+            else:
+                raise APIException500()
+
+            print("Start calling do recharge API")
+            rq_satus, status, resp = DUPrepaidAPIClient().do_recharge(
+                self.payload["data"]["metadata"].get("recharge_number"),
+                recharge_type, self.payload["data"]["metadata"].get("amount")
+            )
+
+        elif self.payload["data"]["metadata"].get('service_type') == DU_POSTPAID:
+            print("Start calling do recharge API for Postpaid")
+            rq_satus, status, resp = DUPostpaidAPIClient().do_recharge(
+                self.payload["data"]["metadata"].get("recharge_number"),
+                self.payload["data"]["metadata"].get("amount"),
+                self.payload["data"]["metadata"]["recharge_transaction_id"]
+            )
         else:
-            raise APIException500()
+            raise APIException500({'error': "Invalid Service type"})
 
         order = None
-        print("Start calling do recharge API")
-        rq_satus, status, resp = DUPrepaidAPIClient().do_recharge(
-            self.payload["data"]["metadata"].get("recharge_number"),
-            recharge_type,  self.payload["data"]["metadata"].get("amount")
-        )
         print(f"GET response for recharge API {rq_satus}, {status}, {resp}")
-
         if rq_satus and status == RECHARGE_COMPLETED:
             order = self.save_order(
                 self.payload["data"]["metadata"], COMPLETED, RECHARGE_COMPLETED
             )
+            transaction_id = resp.get("responseData", {}).get("transactionId")
+            unique_id = resp.get("responseData", {}).get("resField1")
+            self.save_in_progress_order(order, 0, resp, transaction_id, unique_id, False)
         elif rq_satus and status == RECHARGE_PROCESSING:
             order = self.save_order(
                 self.payload["data"]["metadata"], PROCESSING, RECHARGE_PROCESSING
@@ -147,20 +170,28 @@ class OrderService:
         return obj
 
     def save_in_progress_order(self, order, retry_count, last_response,
-                               transaction_id=None, unique_id=None):
-        InProcessOrders.objects.create(
+                               transaction_id=None, unique_id=None, is_active=True):
+        OrdersDetails.objects.create(
             order=order,
             retry_count=retry_count,
             last_response=last_response,
             transaction_id=transaction_id,
             unique_id=unique_id,
-            is_active=True
+            is_active=is_active
         )
 
-    def save_transaction(self, order, payment_intent, resp, status):
-        StripeTransactions.objects.create(
+    def save_transaction(self, order, payment_intent, resp, status, method=None):
+        if method == "credit":
+            method = "2"
+        elif method == "debit":
+            method = "1"
+        else:
+            method = "3"
+        PaymentTransactions.objects.create(
             order=order,
             user=self.request.user,
+            payment_provide=STRIPE,
+            payment_method=method,
             payment_intent=payment_intent,
             gateway_response=resp,
             status=status
@@ -171,7 +202,7 @@ class ProcessPendingOrders:
     """
     """
     def process(self):
-        qs = InProcessOrders.objects.filter(is_active=True).select_related("order")
+        qs = OrdersDetails.objects.filter(is_active=True).select_related("order")
         for ord_obj in qs:
             print(f"Start Processing order ==> {ord_obj.order.id}")
             if ord_obj.order.service_provider == MBME:
@@ -183,7 +214,7 @@ class ProcessPendingOrders:
         stripe_obj = Stripe()
         if order_obj.sub_status == PAYMENT_PROCESSING:
             # will check payment status
-            qs = StripeTransactions.objects.filter(order=order_obj)
+            qs = PaymentTransactions.objects.filter(order=order_obj)
             if qs.exists():
                 trnas_obj = qs[0]
                 # we will not hit in case of webhook

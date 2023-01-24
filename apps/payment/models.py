@@ -11,21 +11,52 @@ TRANSACTION_STATUS = (
     (TRANSACTION_CANCELLED, "CANCELLED")
 )
 
+STRIPE, PAYPAL = "1", "2"
+PAYMENT_PROVIDER = (
+    (STRIPE, "STRIPE"),
+    (PAYPAL, "PAYPAL")
+)
+
+DEBIT_CARD, CREDIT_CARD, APPLE_PAY = "1", "2", "3"
+PAYMENT_METHOD = (
+    (DEBIT_CARD, "DEBIT_CARD"),
+    (CREDIT_CARD, "CREDIT_CARD"),
+    (APPLE_PAY, "APPLE_PAY")
+)
+
 
 class StripeCustomer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='stripe_customer')
     customer_id = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = 'stripe_customer'
 
-class StripeTransactions(models.Model):
+    def __str__(self):
+        return str(self.user.id)
+
+
+class PaymentTransactions(models.Model):
     order = models.ForeignKey(Orders, on_delete=models.CASCADE, related_name='payment')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_payment')
+
+    payment_provide = models.CharField(max_length=50, choices=PAYMENT_PROVIDER)
+    payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD, blank=True, null=True)
     payment_intent = models.CharField(max_length=500)
     gateway_response = models.TextField()
     status = models.CharField(max_length=50, choices=TRANSACTION_STATUS)
+
+    credit_point_transaction_id = models.CharField(max_length=20, blank=True, null=True)
+
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'payment_transactions'
+
+    def __str__(self):
+        return str(self.id)
 
 
 class UserCreditPoint(models.Model):

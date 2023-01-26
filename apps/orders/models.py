@@ -122,6 +122,8 @@ class AvailableRecharge(models.Model):
 
 class Orders(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
+    order_id = models.CharField(unique=True, max_length=100)
+
     service_type = models.CharField(max_length=100, choices=SERVICE_CHOICES)
     recharge_type = models.CharField(max_length=100, choices=RECHARGE_TYPE)
     service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)

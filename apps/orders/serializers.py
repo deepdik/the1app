@@ -23,7 +23,7 @@ class OrderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Orders
         fields = ("created_at", "status", "amount",
-                  "service_type")
+                  "service_type", "order_id")
 
 
 class OrderDetailSerializer(serializers.ModelSerializer):
@@ -32,14 +32,14 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     def get_transaction_details(self, obj):
         payment_obj = obj.payment.first()
         if payment_obj:
-            return {"transaction_id": payment_obj.id,
+            return {"transaction_id": payment_obj.transaction_id,
                     "payment_method": payment_obj.payment_method, "payment_provide": payment_obj.payment_provide}
         return None
 
     class Meta:
         model = Orders
         fields = ("created_at", "status", "amount", "recharge_number",
-                  "service_type", "recharge_type", "transaction_details")
+                  "service_type", "recharge_type", "transaction_details", "order_id")
 
 
 class PostpaidAccountBalanceSerializer(serializers.ModelSerializer):

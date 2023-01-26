@@ -13,7 +13,7 @@ from rest_framework.fields import BooleanField
 
 
 class Userprofile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="user_profile")
     mobile_number = models.CharField(max_length=50, default="", blank=True, null=True)
     code = models.CharField(max_length=5, default="", blank=True, null=True)
     dob = models.DateField(blank=True, null=True)
@@ -110,7 +110,7 @@ class SubAdminPermission(models.Model):
 
 
 class savecountry(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_address")
     country = models.CharField(max_length=30, default="", blank=True, null=True)
     state = models.CharField(max_length=30, default="", blank=True, null=True)
     city = models.CharField(max_length=30, default="", blank=True, null=True)

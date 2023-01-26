@@ -13,6 +13,8 @@ from apps.payment.utils.stripe import Stripe
 from utils.exceptions import APIException500, APIException400
 from django.db.models import F
 
+from utils.utils import get_unique_order_id, get_unique_trans_id
+
 
 class OrderService:
     def __init__(self, intent_id, request):
@@ -89,14 +91,6 @@ class OrderService:
 
         else:
             print("Failed to get payment intent")
-            # mark status as  PROCESSING and push it in queue
-            # order = self.save_order(
-            #     self.payload["data"], PROCESSING, PAYMENT_PROCESSING
-            # )
-            # print("Pushing in PROCESSING QUEUE")
-            # self.save_in_progress_order(order, 1, {})
-            # self.save_transaction(order, self.intent_id, self.payload["data"], TRANSACTION_PROCESSING)
-            # return PROCESSING
             raise APIException400({"error": self.payload["detail"]})
 
     def place_du_recharge_orders(self):
@@ -164,6 +158,7 @@ class OrderService:
             service_provider=metadata.get("service_provider"),
             recharge_number=metadata.get("recharge_number"),
             amount=metadata.get("amount"),
+            order_id = get_unique_order_id(),
             status=status,
             sub_status=sub_status
         )
@@ -190,10 +185,11 @@ class OrderService:
         PaymentTransactions.objects.create(
             order=order,
             user=self.request.user,
-            payment_provide=STRIPE,
+            payment_provider=STRIPE,
             payment_method=method,
             payment_intent=payment_intent,
             gateway_response=resp,
+            transaction_id=get_unique_trans_id(),
             status=status
         )
 

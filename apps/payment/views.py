@@ -1,14 +1,17 @@
 from django.conf import settings
 from django.shortcuts import render
-from django.urls import reverse
 from django.views import View
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.orders.models import SERVICES_PROVIDER, Orders
-from apps.payment.serializers import PaymentIntentCreateSerializer
+from apps.payment.models import PaymentTransactions, PaymentMethods
+from apps.payment.serializers import PaymentIntentCreateSerializer, PaymentMethodSerializer, PaymentMethodListSerializer
+from apps.payment.utils.payment_managent_service import PaymentManagementService
 from apps.payment.utils.stripe import Stripe
 from apps.payment.utils.webhooks import StripeWebhook
 from utils.response import response
@@ -58,6 +61,7 @@ class StripePaymentAPIView(APIView):
     """
     Create Payment intent
     """
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
         """
@@ -84,6 +88,7 @@ class StripeWebhookAPIView(APIView):
     """
     method for handle events on stripe
     """
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
         """
@@ -99,27 +104,46 @@ class StripeWebhookAPIView(APIView):
         return Response(status=204)
 
 
-# class PaymentListViewset(viewsets.ModelViewSet):
-#     """
-#     """
-#     queryset = Orders.objects.filter()
-#     serializer_class = InstructionSerializer
-#     search_fields = ('key_text', 'customer__company')
-#     permission_classes = (permissions.IsAuthenticated,)
-#     ordering = ('-created_at',)
-#     filter_fields = ('condition', 'applied_on', 'customer', 'action')
-#
-#     def filter_queryset(self, queryset):
-#         queryset = super().filter_queryset(queryset)
-#         queryset = queryset.filter(
-#             coc_file_name__isnull=True
-#         ).exclude(
-#             applied_on=CustomerInstruction.TEST
-#         )
-#
-#         return queryset
-#
-#     def perform_destroy(self, instance):
-#         instance.is_deleted = True
-#         instance.deleted_on = timezone.now()
-#         instance.save()
+class PaymentUserListAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        data = PaymentManagementService(request).get_latest_payment_users()
+        return response(data=data, message="success")
+
+
+class UserPaymentHistoryListAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        data = PaymentManagementService(request).get_user_transactions()
+        return response(data=data, message="success")
+
+
+class PaymentMethodViewSet(viewsets.ModelViewSet):
+    queryset = PaymentMethods.objects.all()
+    serializer_class = PaymentMethodSerializer
+    permission_classes = (IsAuthenticated,)
+    ordering = ('created_at',)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return PaymentMethodListSerializer
+        return super(PaymentMethodViewSet, self).get_serializer_class()
+
+    def list(self, request, *args, **kwargs):
+        response_data = super(PaymentMethodViewSet, self).list(request, *args, **kwargs)
+        return response(data=response_data.data, message="success")
+
+    def create(self, request, *args, **kwargs):
+        super(PaymentMethodViewSet, self).create(request, *args, **kwargs)
+        return response(message="created successfully")
+
+    def retrieve(self, request, *args, **kwargs):
+        response_data = super(PaymentMethodViewSet, self).retrieve(request, *args, **kwargs).data
+        return response(data=response_data, message="success")
+
+    @action(detail=False, methods=['get'])
+    def stat(self, request):
+        data = PaymentManagementService(request).get_payment_stats()
+        return response(data=data, message="success")

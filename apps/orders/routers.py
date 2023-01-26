@@ -16,6 +16,9 @@ urlpatterns = [
     path('history', OrdersHistoryListAPIView.as_view(), name='order-history'),
     path('history/detail', OrdersHistoryDetailAPIView.as_view(), name='order-history-detail'),
     path('postpaid/balance', CustomerBalanceAPIView.as_view(), name='postpaid-balance'),
+
+    # Admin panel apis
+    # path('', CustomerBalanceAPIView.as_view(), name='postpaid-balance'),
 ]
 
 urlpatterns += router.urls

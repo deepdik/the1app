@@ -60,7 +60,8 @@ INSTALLED_APPS = [
 INSTALLED_APPS += [
     'apps.payment',
     'apps.orders',
-    'apps.cms'
+    'apps.cms',
+    "apps.sub_admin",
 ]
 
 REST_FRAMEWORK = {

@@ -5,4 +5,6 @@ urlpatterns = [
    	url("payment/", include('apps.payment.routers')),
     url("orders/", include('apps.orders.routers')),
     url("cms/", include('apps.cms.routers')),
+    url("sub-admin/", include('apps.sub_admin.routers')),
+
 ]

@@ -13,7 +13,7 @@ class CountryDetailSerializer(serializers.ModelSerializer):
     cities = serializers.SerializerMethodField()
 
     def get_cities(self, obj):
-        states = state.objects.all().values_list("id")
+        states = state.objects.filter(country=obj).values_list("id")
         cities = city.objects.filter(id__in=states).values("id", "name", "state")
         return cities
 

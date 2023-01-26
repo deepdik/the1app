@@ -139,7 +139,6 @@ class PaymentMethodListSerializer(serializers.ModelSerializer):
         count = 0
         count += 1 if obj.debit_card else 0
         count += 1 if obj.credit_card else 0
-        count += 1 if obj.paypal else 0
         count += 1 if obj.credit_points else 0
         count += 1 if obj.apple_pay else 0
         return count

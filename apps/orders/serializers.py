@@ -33,7 +33,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         payment_obj = obj.payment.first()
         if payment_obj:
             return {"transaction_id": payment_obj.transaction_id,
-                    "payment_method": payment_obj.payment_method, "payment_provide": payment_obj.payment_provide}
+                    "payment_method": payment_obj.payment_method, "payment_provider": payment_obj.payment_provide}
         return None
 
     class Meta:

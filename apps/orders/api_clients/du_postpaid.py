@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.utils import timezone
 
 from apps.orders.api_clients.platform import GeneralAPIClient
 from apps.orders.models import APIMethodEnum, ORDER_SUB_STATUS, RECHARGE_PROCESSING, RECHARGE_FAILED, \
@@ -66,7 +67,7 @@ class DUPostpaidAPIClient:
                     "customer_name": customer_name,
                     "response": resp,
                     "recharge_transaction_id": resp.get("responseData").get("resField1"),
-                    "valid_upto": datetime.now() + timedelta(minutes=60)
+                    "valid_upto": timezone.now() + timedelta(minutes=1)
                 }
             )
             return PostpaidAccountBalanceSerializer(obj).data
@@ -96,7 +97,7 @@ class DUPostpaidAPIClient:
             service_type=DU_POSTPAID,
             service_provider=MBME,
             recharge_number=recharge_number,
-            valid_upto__gt=datetime.now()
+            valid_upto__gt=timezone.now()
         )
         if qs.exists():
             return PostpaidAccountBalanceSerializer(qs[0]).data

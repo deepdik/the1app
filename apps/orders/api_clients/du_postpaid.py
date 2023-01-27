@@ -21,9 +21,9 @@ class DUPostpaidAPIClient:
     def get_customer_balance(self, number):
         """Use API Method 'balance' to know the outstanding amount of the customer using
             unique transaction ID."""
-        data = self.get_balance_from_db(number)
-        if data:
-            return data
+        # data = self.get_balance_from_db(number)
+        # if data:
+        #     return data
 
         payload = {
             "transactionId": get_transaction_id(),

@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.cms.models import CMS
@@ -11,6 +12,7 @@ from utils.response import response
 
 
 class CMSAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
 
     method for handle events on stripe

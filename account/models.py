@@ -9,9 +9,6 @@ import pytz
 from rest_framework.fields import BooleanField
 
 
-# Create your models here.
-
-
 class Userprofile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     mobile_number = models.CharField(max_length=50, default="", blank=True, null=True)

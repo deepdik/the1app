@@ -17,19 +17,25 @@ def exception_handler(func):
             return {
                 'detail': 'success',
                 'data': res,
-                'status_code': 200}
+                'status_code': 200,
+                'status':True
+            }
 
         except TypeError as e:
             return {
                 'detail': str(e),
                 'data': None,
-                'status_code': 500}
+                'status_code': 500,
+                'status': False
+            }
 
         except Exception as e:
             return {
                 'detail': str(e.error.message),
                 'data': None,
-                'status_code': 500}
+                'status_code': 503,
+                'status': False
+            }
 
 
     return wrap

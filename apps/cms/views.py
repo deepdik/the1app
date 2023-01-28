@@ -14,19 +14,14 @@ from utils.response import response
 class CMSAPIView(APIView):
     permission_classes = (IsAuthenticated,)
     """
-
-    method for handle events on stripe
     """
-
     def get(self, request, *args, **kwargs):
         qs = CMS.objects.all()
         cms_data = CMSListSerializer(qs, many=True).data
-
         return response(status_code=200, data=cms_data, message='success')
 
     def post(self, request, *args, **kwargs):
         data = request.data
-        print(data)
         serializer = CMSCreateSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -46,7 +41,7 @@ class CMSAPIView(APIView):
     def delete(self, request, *args, **kwargs):
         qs = CMS.objects.filter(id=request.GET.get("id"))
         if not qs.exists():
-            raise APIException404({"error":"resource not found"})
+            raise APIException404({"error": "resource not found"})
         else:
             qs.delete()
 

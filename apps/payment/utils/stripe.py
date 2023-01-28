@@ -7,7 +7,7 @@ from django.urls import reverse
 
 import logging
 
-from apps.payment.models import StripeCustomer
+from apps.payment.models import StripeCustomer, PaymentTransactions
 from utils.decorator import exception_handler
 
 # Get an instance of a logger
@@ -42,9 +42,11 @@ class Stripe(object):
             'user_id': user.id,
             'service_type': kwargs.get("service_type"),
             'recharge_number': kwargs.get("recharge_number"),
+            "service_provider": kwargs.get("service_provider"),
             'recharge_type': kwargs.get("recharge_type"),
+            'recharge_transaction_id': kwargs.get("recharge_transaction_id"),
             'amount': amount,
-            'currency': currency
+            'currency': currency,
         }
         customer_id = self.__get_or_create_customer(user)
         intent = stripe.PaymentIntent.create(
@@ -78,7 +80,7 @@ class Stripe(object):
             return objs[0].customer_id
 
         customer = stripe.Customer.create(
-            address={"line1":'Text address'},
+            address={"line1": 'Text address'},
             email=user.email,
             metadata={},
             name=user.first_name
@@ -91,7 +93,6 @@ class Stripe(object):
 
         return obj.customer_id
 
-
     def get_ephemeralKey(self, customer_id):
         ephemeralKey = stripe.EphemeralKey.create(
             customer=customer_id,
@@ -99,6 +100,7 @@ class Stripe(object):
         )
         return ephemeralKey["secret"]
 
+    @exception_handler
     def retrive_payment_intent(self, *args, **kwargs):
         """
         """
@@ -130,3 +132,4 @@ class Stripe(object):
             intent_id,
         )
         return intent
+

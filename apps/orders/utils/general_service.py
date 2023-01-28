@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone, date
 import asyncio
 from apps.orders.api_clients.platform import GeneralAPIClient
-from apps.orders.models import AccessTokens
+from apps.orders.models import AccessTokens, SERVICES_PROVIDER, MBME
 
 logger = logging.getLogger(__name__)
 
@@ -17,17 +17,7 @@ class GeneralAPIService:
             AccessTokens.objects.create(
                 access_token=resp["accessToken"],
                 valid_upto=valid_upto,
+                service_provide=MBME,
                 wallet_balance=resp["walletBalance"]
             )
 
-    def get_all_pending_transactions(self, from_date: date, to_date: date):
-        pass
-
-    def process_pending_transactions(self):
-        pass
-
-    def get_transaction_status(self, transaction_id):
-        pass
-
-    def get_transactions_report(self, transactions):
-        pass

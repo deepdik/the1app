@@ -62,6 +62,7 @@ INSTALLED_APPS += [
     'apps.orders',
     'apps.cms',
     'apps.notification'
+    "apps.sub_admin",
 ]
 
 REST_FRAMEWORK = {

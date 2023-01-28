@@ -3,8 +3,9 @@ import datetime
 from django.conf import settings
 from django.utils import timezone
 
-from apps.orders.models import APIMethodEnum, AccessTokens
+from apps.orders.models import APIMethodEnum, AccessTokens, SERVICES_PROVIDER, MBME, RECHARGE_FAILED
 from apps.orders.utils.api_call_wrapper import sync_api_caller
+from apps.orders.utils.utils import get_transaction_id
 
 
 class GeneralAPIClient:
@@ -13,6 +14,7 @@ class GeneralAPIClient:
         self.base_url = settings.MBME_BASE_URL
 
     def __generate_token(self):
+        print("Start generating new token")
         payload = {
             "username": settings.MBME_PAY_USERNAME,
             "password": settings.MBME_PAY_PASSWORD
@@ -23,7 +25,7 @@ class GeneralAPIClient:
             data=payload,
             retry=1
         )
-        print(resp, status)
+        print(f"Get response form MBME for token {resp}, {status}")
         if status:
             resp_status = self.__get_response_status(resp)
             if resp_status:
@@ -31,6 +33,7 @@ class GeneralAPIClient:
                 AccessTokens.objects.create(
                     access_token=resp["accessToken"],
                     valid_upto=valid_upto,
+                    service_provider=MBME,
                     wallet_balance=resp["walletBalance"]
                 )
                 return resp["accessToken"]
@@ -39,8 +42,12 @@ class GeneralAPIClient:
 
     def get_access_token(self):
         print("Trying to get access token")
-        qs = AccessTokens.objects.filter(valid_upto__gt=datetime.datetime.now())
+        qs = AccessTokens.objects.filter(
+            service_provider=MBME,
+            valid_upto__gt=datetime.datetime.now()
+        )
         if qs.exists():
+            print("found token in DB")
             return qs[0].access_token
         else:
             return self.__generate_token()
@@ -70,3 +77,57 @@ class GeneralAPIClient:
 
     def get_all_transaction_report(self, from_date, to_date):
         pass
+
+    def process_pending_recharge(self, unique_id):
+        payload = {
+            "transId": get_transaction_id(),
+            "uniqueId": unique_id
+        }
+
+        token = GeneralAPIClient().get_access_token()
+        if not token:
+            print("Error while getting access token")
+            return False, None
+
+        headers = {"Authorization": token}
+        resp, status = sync_api_caller(
+            url=self.base_url + settings.MBME_PROCESS_PENDING_TRAN,
+            method=APIMethodEnum.POST,
+            data=payload,
+            headers=headers,
+            retry=3
+        )
+        if not status:
+            print("Error in Get transaction API call...")
+            return False, resp
+
+        if resp.get("responseCode") == "000":
+            return True, resp
+        else:
+            return False, resp
+
+    def get_recharge_status(self, transaction_id):
+        payload = {
+            "transactionId": transaction_id,
+        }
+        token = GeneralAPIClient().get_access_token()
+        if not token:
+            print("Error while getting access token")
+            return False, None
+
+        headers = {"Authorization": token}
+        resp, status = sync_api_caller(
+            url=self.base_url + settings.MBME_FIND_TRAN_BY_ID,
+            method=APIMethodEnum.POST,
+            data=payload,
+            headers=headers,
+            retry=3
+        )
+        if not status:
+            print("Error in Get transaction API call...")
+            return False, resp
+
+        if resp.get("responseCode") == "000":
+            return True, resp
+        else:
+            return False, resp

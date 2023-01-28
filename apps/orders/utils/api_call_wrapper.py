@@ -8,12 +8,14 @@ from apps.orders.models import APIMethodEnum
 from apps.orders.utils.api_caller_utils import request_url
 
 
-def sync_api_caller(url: str, method: APIMethodEnum, params: dict=None,
-                           data=None, headers={}, retry=settings.ERROR_RETRY_COUNT):
+def sync_api_caller(url: str, method: APIMethodEnum, params: dict = None,
+                    data=None, headers={}, retry=settings.ERROR_RETRY_COUNT):
+    print(f"payload for request POST==>URL- {url}method=>{method} params=>{params} data=>{data} headers=>{headers}")
     # TODO : can switch server if server realted issue
     if retry <= 0: return
     resp = {}
     status = False
+
     try:
         resp, status = request_url(url, method, params, data, headers)
     # except aiohttp.web.HTTPTooManyRequests as e:
@@ -40,5 +42,5 @@ def sync_api_caller(url: str, method: APIMethodEnum, params: dict=None,
         print('Unknown exception Not handled in API caller wrapper - ', e)
 
     finally:
-        print("Return from finally block")
+        print(f"Return from finally block==>{resp} {status}")
         return resp, status

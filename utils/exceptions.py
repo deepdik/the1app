@@ -43,3 +43,4 @@ def custom_exception_handler(exc, context):
         payload["errors"] = response.data
         response.data = payload
     return response
+

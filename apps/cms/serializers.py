@@ -32,9 +32,3 @@ class CMSUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CMS
         fields = ("id", "heading", "description")
-
-
-class CMSDeleteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CMS
-        fields = ("id")

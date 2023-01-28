@@ -46,3 +46,27 @@ class PostpaidAccountBalanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostpaidAccountBalance
         fields = ("customer_name", "balance", "recharge_number", "recharge_transaction_id")
+
+
+class OrderListViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Orders
+        fields = ("id", "created_at", "status", "amount",
+                  "service_type", "order_id", "user", "recharge_number")
+
+
+class OrderDetailViewSerializer(serializers.ModelSerializer):
+    transaction_details = serializers.SerializerMethodField()
+
+    def get_transaction_details(self, obj):
+        payment_obj = obj.payment.first()
+        if payment_obj:
+            return {"transaction_id": payment_obj.transaction_id,
+                    "payment_method": payment_obj.payment_method,
+                    "payment_provider": payment_obj.payment_provider}
+        return None
+    class Meta:
+        model = Orders
+        fields = ("created_at", "status", "amount",
+                  "service_type", "order_id", "user", "recharge_number", "recharge_type",
+                  "transaction_details")

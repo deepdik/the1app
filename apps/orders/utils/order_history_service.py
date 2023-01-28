@@ -2,11 +2,17 @@ import datetime
 
 from enum import Enum
 
+from django.db.models import Sum
 from django.utils import timezone
 
 from apps.orders.models import Orders, DU_PREPAID, DU_POSTPAID
-from apps.orders.serializers import OrderListSerializer, OrderDetailSerializer
+from apps.orders.serializers import OrderListSerializer, OrderDetailSerializer, OrderListViewSerializer
 from utils.exceptions import APIException400, APIException404
+
+
+class SortingFilter(Enum):
+    A_Z = "1"
+    Z_A = "2"
 
 
 class MonthFilter(Enum):
@@ -67,9 +73,9 @@ class OrderHistory:
             elif self.request.GET.get('month') == MonthFilter.THIS_WEEK.value:
                 qs = qs.filter(created_at__week=timezone.now().isocalendar()[1])
             elif self.request.GET.get('month') == MonthFilter.THIS_MONTH.value:
-                qs = qs.filter(created_at__month=timezone.now().now().month)
+                qs = qs.filter(created_at__month=timezone.now().month)
             elif self.request.GET.get('month') == MonthFilter.THIS_YEAR.value:
-                qs = qs.filter(created_at__year=timezone.now().now().year)
+                qs = qs.filter(created_at__year=timezone.now().year)
 
             # data["total"] = qs.count()
             qs = qs[offset:limit + offset]
@@ -88,4 +94,49 @@ class OrderHistory:
                 "error": "no resource found"
             })
         data = OrderDetailSerializer(qs, many=True).data
+        return data
+
+    def get_order_list_for_admin(self):
+
+        limit = int(self.request.GET.get('limit', 10))
+        offset = int(self.request.GET.get('offset', 0))
+        data = {"limit": limit, "offset": offset}
+
+        qs = Orders.objects.filter()
+
+        if self.request.GET.get('search_by'):
+            if self.request.GET.get('search_by').isdigit():
+                qs = qs.filter(user=self.request.GET.get('search_by'))
+            else:
+                qs = qs.filter(order_id=self.request.GET.get('search_by'))
+
+        if self.request.GET.get('category_filter') == ORDER_TYPE.MOBILE.value:
+            qs = qs.filter(service_type__in=[DU_PREPAID, DU_POSTPAID])
+        elif self.request.GET.get('category_filter') == ORDER_TYPE.TRANSPORT.value:
+            qs = qs.filter(service_type__in=[])
+
+        if self.request.GET.get('from_date') and self.request.GET.get('to_date'):
+            qs = qs.filter(
+                created_at__date__gte=self.request.GET.get('from_date'),
+                created_at__date__lte=self.request.GET.get('to_date')
+            )
+
+        if self.request.GET.get('filter_by') == MonthFilter.TODAY.value:
+            qs = qs.filter(created_at__date=timezone.now().today())
+        elif self.request.GET.get('filter_by') == MonthFilter.THIS_WEEK.value:
+            qs = qs.filter(created_at__week=timezone.now().isocalendar()[1])
+        elif self.request.GET.get('filter_by') == MonthFilter.THIS_MONTH.value:
+            qs = qs.filter(created_at__month=timezone.now().month)
+        elif self.request.GET.get('filter_by') == MonthFilter.THIS_YEAR.value:
+            qs = qs.filter(created_at__year=timezone.now().year)
+
+        if self.request.GET.get('sort_by') == SortingFilter.A_Z.value:
+            qs = qs.order_by("id")
+        elif self.request.GET.get('sort_by') == SortingFilter.Z_A.value:
+            qs = qs.order_by("-id")
+
+        data["total_results"] = qs.count()
+        qs = qs[offset:limit]
+
+        data["results"] = OrderListViewSerializer(qs, many=True).data
         return data

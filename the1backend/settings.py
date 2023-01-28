@@ -61,7 +61,7 @@ INSTALLED_APPS += [
     'apps.payment',
     'apps.orders',
     'apps.cms',
-    'apps.notification'
+    'apps.notification',
     "apps.sub_admin",
 ]
 

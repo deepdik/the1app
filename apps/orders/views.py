@@ -5,7 +5,8 @@ from rest_framework.views import APIView
 
 from apps.orders.api_clients.du_postpaid import DUPostpaidAPIClient
 from apps.orders.models import AvailableRecharge, MBME, Orders
-from apps.orders.serializers import PlaceOrderSerializer, OrderListSerializer
+from apps.orders.serializers import PlaceOrderSerializer, OrderDetailSerializer, \
+    OrderDetailViewSerializer, OrderListViewSerializer
 from apps.orders.utils.order_history_service import OrderHistory
 from apps.orders.utils.order_place_service import OrderService
 from utils.exceptions import APIException400
@@ -72,3 +73,23 @@ class CustomerBalanceAPIView(APIView):
         raise APIException400({
             "error": "number is required"
         })
+
+
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Orders.objects.all()
+    serializer_class = OrderListViewSerializer
+    permission_classes = (IsAuthenticated,)
+    ordering = ('created_at',)
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return OrderDetailViewSerializer
+        return super(OrderViewSet, self).get_serializer_class()
+
+    def list(self, request, *args, **kwargs):
+        response_data = OrderHistory(request).get_order_list_for_admin()
+        return response(data=response_data, message="success")
+
+    def retrieve(self, request, *args, **kwargs):
+        response_data = super(OrderViewSet, self).retrieve(request, *args, **kwargs).data
+        return response(data=response_data, message="success")

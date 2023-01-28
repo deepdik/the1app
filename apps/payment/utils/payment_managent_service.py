@@ -4,15 +4,10 @@ from django.db.models import F, Sum, Count, Q
 from django.utils import timezone
 
 from apps.orders.models import DU_PREPAID, DU_POSTPAID
-from apps.orders.utils.order_history_service import OrderHistoryCategory, MonthFilter, ORDER_TYPE
-from apps.payment.models import PaymentTransactions, PAYMENT_METHOD, DEBIT_CARD, CREDIT_CARD, APPLE_PAY, CREDIT_POINTS, \
+from apps.orders.utils.order_history_service import MonthFilter, ORDER_TYPE, SortingFilter
+from apps.payment.models import PaymentTransactions, DEBIT_CARD, CREDIT_CARD, APPLE_PAY, CREDIT_POINTS, \
     TRANSACTION_CANCELLED
 from apps.payment.serializers import UserPaymentHistoryListSerializer
-
-
-class SortingFilter(Enum):
-    A_Z = "1"
-    Z_A = "2"
 
 
 class PaymentManagementService:
@@ -59,7 +54,7 @@ class PaymentManagementService:
             qs = qs.filter(created_at__year=timezone.now().now().year)
 
         data["total_results"] = qs.count()
-        qs = qs.distinct()[offset:limit + offset]
+        qs = qs.distinct()[offset:limit]
 
         return qs
 
@@ -89,9 +84,9 @@ class PaymentManagementService:
         elif self.request.GET.get('filter_by') == MonthFilter.THIS_WEEK.value:
             qs = qs.filter(created_at__week=timezone.now().isocalendar()[1])
         elif self.request.GET.get('filter_by') == MonthFilter.THIS_MONTH.value:
-            qs = qs.filter(created_at__month=timezone.now().now().month)
+            qs = qs.filter(created_at__month=timezone.now().month)
         elif self.request.GET.get('filter_by') == MonthFilter.THIS_YEAR.value:
-            qs = qs.filter(created_at__year=timezone.now().now().year)
+            qs = qs.filter(created_at__year=timezone.now().year)
 
         if self.request.GET.get('sort_by') == SortingFilter.A_Z.value:
             qs = qs.order_by("transaction_id")
@@ -99,7 +94,7 @@ class PaymentManagementService:
             qs = qs.order_by("-transaction_id")
 
         data["total_results"] = qs.count()
-        qs = qs[offset:limit + offset]
+        qs = qs[offset:limit]
 
         data["total_amount"] = qs.aggregate(Sum('order__amount')).get("order__amount__sum")
 
@@ -121,9 +116,9 @@ class PaymentManagementService:
         elif self.request.GET.get('filter_by') == MonthFilter.THIS_WEEK.value:
             qs = qs.filter(created_at__week=timezone.now().isocalendar()[1])
         elif self.request.GET.get('filter_by') == MonthFilter.THIS_MONTH.value:
-            qs = qs.filter(created_at__month=timezone.now().now().month)
+            qs = qs.filter(created_at__month=timezone.now().month)
         elif self.request.GET.get('filter_by') == MonthFilter.THIS_YEAR.value:
-            qs = qs.filter(created_at__year=timezone.now().now().year)
+            qs = qs.filter(created_at__year=timezone.now().year)
 
         qs = qs.values('payment_method').annotate(
             dcount=Count('payment_method'),
@@ -137,12 +132,12 @@ class PaymentManagementService:
         if total:
             for data in qs:
                 if data.get("payment_method") == DEBIT_CARD:
-                    f_data["debit_card"] = round((data.get("dcount")/total)*100, 2)
+                    f_data["debit_card"] = round((data.get("dcount") / total) * 100, 2)
                 elif data.get("payment_method") == CREDIT_CARD:
-                    f_data["credit_card"] = round((data.get("dcount")/total)*100, 2)
+                    f_data["credit_card"] = round((data.get("dcount") / total) * 100, 2)
                 elif data.get("payment_method") == APPLE_PAY:
-                    f_data["apple_pay"] = round((data.get("dcount")/total)*100, 2)
+                    f_data["apple_pay"] = round((data.get("dcount") / total) * 100, 2)
                 elif data.get("payment_method") == CREDIT_POINTS:
-                    f_data["credit_points"] = round((data.get("dcount")/total)*100, 2)
+                    f_data["credit_points"] = round((data.get("dcount") / total) * 100, 2)
 
         return f_data

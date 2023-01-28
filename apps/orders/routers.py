@@ -6,9 +6,12 @@ from django.urls import re_path, path
 from rest_framework.routers import SimpleRouter
 
 from apps.orders.views import PlaceOrderAPIView, AvailableRechargeAPIView, OrdersHistoryListAPIView, \
-    CustomerBalanceAPIView, OrdersHistoryDetailAPIView
+    CustomerBalanceAPIView, OrdersHistoryDetailAPIView, OrderViewSet
 
 router = SimpleRouter()
+
+router.register(r'', OrderViewSet, basename='order')
+
 
 urlpatterns = [
     path('place', PlaceOrderAPIView.as_view(), name='order-place'),

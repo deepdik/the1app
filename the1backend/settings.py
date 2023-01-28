@@ -61,12 +61,14 @@ INSTALLED_APPS += [
     'apps.payment',
     'apps.orders',
     'apps.cms',
+    'apps.notification'
     "apps.sub_admin",
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
+
 
         # 'rest_framework.authentication.OAuth2Authentication',
     ],
@@ -168,7 +170,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CRONJOBS = [
 
-    #('* */7 * * *', 'account.cron.upload_news'),
+    # ('* */7 * * *', 'account.cron.upload_news'),
     ('*/5 * * * *', 'apps.orders.cron.scheduled.refresh_access_token')
 ]
 

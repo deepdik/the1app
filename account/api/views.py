@@ -24,6 +24,7 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 
+from apps.notification.models import UserNotificationSetting
 from ..models import *
 from .serializers import *
 from .serializers import ChangePasswordSerializer
@@ -103,6 +104,8 @@ class signup(APIView):
                 "longitude": profileO.location.y
             }
             token, created = Token.objects.get_or_create(user=user)
+            UserNotificationSetting.objects.create(user=user)
+
             return Response({'message': 'success', 'data': data, 'token': token.key}, status=HTTP_200_OK)
         return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
 

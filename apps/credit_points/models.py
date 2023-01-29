@@ -1,6 +1,7 @@
-from aiohttp.payload import Order
 from django.db import models
 from django.contrib.auth.models import User
+
+from apps.orders.models import Orders
 
 CREDITED, DEBITED = "1", "2"
 TRANS_TYPE = (
@@ -34,12 +35,12 @@ class CreditPointTransaction(models.Model):
 
     # optional field when order placed
     equ_amount_paid = models.FloatField(default=0, blank=True, null=True)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE,
+    order = models.ForeignKey(Orders, on_delete=models.CASCADE,
                               blank=True, null=True, related_name='credit_point_trans')
 
-    # option when order
-    earn_by_user = models.ForeignKey(User, blank=True, null=True, on_delete=models.CASCADE,
-                                     related_name='earn_by_user_credit_points')
+    # optional when order
+    earn_from_user = models.ForeignKey(User, blank=True, null=True, on_delete=models.CASCADE,
+                                       related_name='earn_by_user_credit_points')
 
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)

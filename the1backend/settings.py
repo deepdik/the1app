@@ -63,6 +63,7 @@ INSTALLED_APPS += [
     'apps.cms',
     'apps.notification',
     "apps.sub_admin",
+    "apps.credit_points"
 ]
 
 REST_FRAMEWORK = {

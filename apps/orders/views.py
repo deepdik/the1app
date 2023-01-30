@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.orders.api_clients.du_postpaid import DUPostpaidAPIClient
+from apps.orders.api_clients.du_prepaid import DUPrepaidAPIClient
 from apps.orders.models import AvailableRecharge, MBME, Orders
 from apps.orders.serializers import PlaceOrderSerializer, OrderDetailSerializer, \
     OrderDetailViewSerializer, OrderListViewSerializer
@@ -68,8 +69,33 @@ class CustomerBalanceAPIView(APIView):
     def get(self, request, *args, **kwargs):
         number = self.request.GET.get('number')
         if number:
+            if not number.isdigit() or len(number) > 10:
+                raise APIException400({
+                    "error": "Invalid mobile Number"
+                })
             data = DUPostpaidAPIClient().get_customer_balance(number)
             return response(message="success", data=data)
+        raise APIException400({
+            "error": "number is required"
+        })
+
+
+class VerifyPrepaidAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        number = self.request.GET.get('number')
+        if number:
+            if not number.isdigit() or len(number) > 10:
+                raise APIException400({
+                    "error": "Invalid mobile Number"
+                })
+            status, msg = DUPrepaidAPIClient().verify_customer_account(number)
+            if not status:
+                raise APIException400({
+                    "error": msg
+                })
+            return response(message=msg)
         raise APIException400({
             "error": "number is required"
         })

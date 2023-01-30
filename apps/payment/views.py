@@ -143,6 +143,10 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
         response_data = super(PaymentMethodViewSet, self).retrieve(request, *args, **kwargs).data
         return response(data=response_data, message="success")
 
+    def update(self, request, *args, **kwargs):
+        super(PaymentMethodViewSet, self).update(request, *args, **kwargs)
+        return response(message="updated successfully")
+
     @action(detail=False, methods=['get'])
     def stat(self, request):
         data = PaymentManagementService(request).get_payment_stats()

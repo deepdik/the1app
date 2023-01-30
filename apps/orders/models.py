@@ -69,6 +69,7 @@ class VerifiedNumbers(models.Model):
     recharge_type = models.CharField(max_length=100, choices=RECHARGE_TYPE)
     service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)
     recharge_number = models.CharField(max_length=10)
+    is_valid = models.BooleanField(default=False)
     valid_upto = models.DateTimeField()
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)

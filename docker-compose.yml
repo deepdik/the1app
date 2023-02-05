@@ -8,11 +8,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: the1web
-    command: sh -c "python manage.py makemigrations &&
-                    python manage.py migrate &&
-                    python manage.py collectstatic --no-input &&
-                    service cron start &&
-                    python manage.py runserver 0.0.0.0:8002"
+    command: sh -c "python manage.py runserver 0.0.0.0:8002"
 
     volumes:
       - .:/app

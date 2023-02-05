@@ -4,13 +4,12 @@ import datetime
 from asgiref.sync import sync_to_async, async_to_sync
 from django.conf import settings
 from rest_framework import serializers
-from stripe.api_resources.payment_method import PaymentMethod
 
 from apps.orders.api_clients.du_prepaid import DUPrepaidAPIClient
-from apps.orders.models import SERVICE_CHOICES, RECHARGE_TYPE, AvailableRecharge, VerifiedNumbers, SERVICES_PROVIDER, \
-    MBME, DU_PREPAID, MINUTE, DATA, Orders, DU_POSTPAID
+from apps.orders.models import SERVICE_CHOICES, RECHARGE_TYPE, AvailableRecharge, SERVICES_PROVIDER, \
+    MBME, DU_PREPAID, MINUTE, DATA, Orders, DU_POSTPAID, SALIK_DIRECT, NOL_TOPUP, ETISALAT
 from apps.payment.models import PaymentTransactions, PaymentMethods
-from utils.exceptions import APIException400, APIException500
+from utils.exceptions import APIException400
 
 
 class PaymentIntentCreateSerializer(serializers.Serializer):
@@ -22,7 +21,9 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
     recharge_number = serializers.CharField(max_length=10)
     recharge_type = serializers.ChoiceField(choices=RECHARGE_TYPE, allow_blank=True, allow_null=True)
     recharge_transaction_id = serializers.CharField(allow_blank=True, allow_null=True)
-
+    account_pin = serializers.CharField(allow_blank=True, allow_null=True, required=False)
+    service_offered = serializers.CharField(allow_blank=True, allow_null=True, required=False)
+    current_balance = serializers.IntegerField(allow_null=True, required=False)
     def validate_recharge_number(self, value):
         if not value.isdigit():
             raise APIException400({
@@ -30,9 +31,6 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
             })
         return value
 
-    def validate_amount(self, value):
-        # validate price range
-        return value
 
     def validate(self, attrs):
         service_type = attrs["service_type"]
@@ -40,10 +38,36 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
         amount = attrs["amount"]
         recharge_number = attrs["recharge_number"]
         # DU postpaid
-        if service_type == DU_POSTPAID and not attrs.get("recharge_transaction_id"):
+        if service_type in (DU_POSTPAID, SALIK_DIRECT, NOL_TOPUP) and not attrs.get("recharge_transaction_id"):
             raise APIException400({
-                "error": f"recharge_transaction_id is required for DU Postpaid"
+                "error": "recharge_transaction_id is required"
             })
+
+        if service_type == SALIK_DIRECT:
+            if not attrs.get("account_pin"):
+                raise APIException400({
+                    "error": "account_pin is required for Salik Direct"
+                })
+            if not int(settings.SALIK_DIRECT_MIN) <= amount <= int(settings.SALIK_DIRECT_MAX):
+                raise APIException400({
+                    "error": f"Invalid amount. Amount should be b/w {settings.SALIK_DIRECT_MIN}-{settings.SALIK_DIRECT_MAX}"
+                })
+            if not amount % 50 == 0:
+                raise APIException400({
+                    "error": f"Amount should be multiple of 50"
+                })
+
+        if service_type == NOL_TOPUP:
+            if not int(settings.NOL_TOPUP_MIN) <= amount <= int(settings.NOL_TOPUP_MAX):
+                raise APIException400({
+                    "error": f"Invalid amount. Amount should be b/w {settings.NOL_TOPUP_MIN}-{settings.NOL_TOPUP_MAX}"
+                })
+
+        if service_type == ETISALAT:
+            if not attrs.get("service_offered") or not attrs.get("current_balance"):
+                raise APIException400({
+                    "error": "Both service_offered and current_balance is required for Etisalat recharge"
+                })
 
         # for DU prepaid
         if service_type == DU_PREPAID:
@@ -82,7 +106,7 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
         return attrs
 
     class Meta:
-        fields = ('amount', 'service_type', 'recharge_number', 'recharge_type')
+        fields = ('amount', 'service_type', 'recharge_number', 'recharge_type', 'account_pin')
 
 
 class UserPaymentHistoryListSerializer(serializers.ModelSerializer):
@@ -116,6 +140,7 @@ class PaymentMethodListSerializer(serializers.ModelSerializer):
     active_methods = serializers.SerializerMethodField()
     country_name = serializers.SerializerMethodField()
     city_name = serializers.SerializerMethodField()
+
     def get_country_name(self, obj):
         return obj.country.name
 

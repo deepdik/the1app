@@ -19,16 +19,36 @@ SERVICES_PROVIDER = (
     (MBME, "MBME"),
 )
 
-DU_PREPAID, DU_POSTPAID = "1", "2"
+DU_PREPAID, DU_POSTPAID, ETISALAT, NOL_TOPUP, HAFILAT, SALIK_DIRECT = "1", "2", "3", "4", "5", "6"
 SERVICE_CHOICES = (
     (DU_PREPAID, "DU_PREPAID"),
     (DU_POSTPAID, "DU_POSTPAID"),
+    (ETISALAT, "ETISALAT"),
+    (HAFILAT, "HAFILAT"),
+    (NOL_TOPUP, "NOL_TOPUP"),
+    (SALIK_DIRECT, "SALIK_DIRECT")
 )
 
 DATA, MINUTE = "1", "2"
 RECHARGE_TYPE = (
     (DATA, "DATA"),
     (MINUTE, "MINUTE")
+)
+
+# GSM for postpaid GSM, DEL for Landline telephones,
+# DAILUP for Internet Dialup, BROADBAND for AlShamil,
+# EViSION for eVision, ELIFE for eLife, WaselRecharge for Wasel recharge.
+WASELRECHARGE, POSTPAID_GSM, LANDLINE_DEL, INTERNET_DIALUP, ALSHAMIL_BROADBAND, EVISION, ELIFE \
+    = "WaselRecharge", "GSM", "DEL", "DIALUP", "BROADBAND", "EVISION", "ELIFE"
+
+ETISALAT_SERVICES = (
+    (WASELRECHARGE, "WASELRECHARGE"),
+    (POSTPAID_GSM, "POSTPAID_GSM"),
+    (LANDLINE_DEL, "LANDLINE_DEL"),
+    (INTERNET_DIALUP, "INTERNET_DIALUP"),
+    (EVISION, "EVISION"),
+    (ALSHAMIL_BROADBAND, "ALSHAMIL_BROADBAND"),
+    (ELIFE, "ELIFE")
 )
 
 PAYMENT_PROCESSING, PAYMENT_COMPLETED, PAYMENT_FAILED = "1", "2", "3"
@@ -50,6 +70,25 @@ ORDER_STATUS = (
 )
 
 
+class ServiceProviders(models.Model):
+    name = models.CharField(max_length=100)
+    desc = models.TextField(blank=True, null=True)
+    service_id = models.CharField(max_length=50, choices=SERVICE_CHOICES, unique=True)
+
+    is_active = models.BooleanField(default=True)
+    health = models.BooleanField(default=True)
+    logo = models.ImageField(blank=True, null=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'service_providers'
+
+    def __str__(self):
+        return self.name
+
+
 class AccessTokens(models.Model):
     access_token = models.TextField()
     service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)
@@ -64,38 +103,18 @@ class AccessTokens(models.Model):
         return str(self.id)
 
 
-class VerifiedNumbers(models.Model):
+class VerifiedAccounts(models.Model):
     service_type = models.CharField(max_length=100, choices=SERVICE_CHOICES)
-    recharge_type = models.CharField(max_length=100, choices=RECHARGE_TYPE)
     service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)
     recharge_number = models.CharField(max_length=10)
     is_valid = models.BooleanField(default=False)
     valid_upto = models.DateTimeField()
-    updated_at = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'verified_numbers'
-
-    def __str__(self):
-        return str(self.id)
-
-
-class PostpaidAccountBalance(models.Model):
-    service_type = models.CharField(max_length=100, choices=SERVICE_CHOICES)
-    recharge_type = models.CharField(max_length=100, choices=RECHARGE_TYPE, blank=True, null=True)
-    service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)
-    recharge_number = models.CharField(max_length=10)
-    balance = models.CharField(max_length=10)
-    customer_name = models.CharField(max_length=200, blank=True, null=True)
     response = models.JSONField(blank=True, null=True)
-    valid_upto = models.DateTimeField()
-    recharge_transaction_id = models.CharField(max_length=500, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'postpaid_account_balance'
+        db_table = 'verified_accounts'
 
     def __str__(self):
         return str(self.id)
@@ -130,6 +149,7 @@ class Orders(models.Model):
     service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)
     recharge_number = models.CharField(max_length=10)
     amount = models.FloatField()
+
     status = models.CharField(max_length=100, choices=ORDER_STATUS)
     sub_status = models.CharField(max_length=100, choices=ORDER_SUB_STATUS)
     created_at = models.DateTimeField(auto_now_add=True)

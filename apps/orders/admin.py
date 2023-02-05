@@ -1,8 +1,6 @@
 from django.contrib import admin
 
-from apps.orders.models import AccessTokens, AvailableRecharge, Orders, OrdersDetails, VerifiedNumbers, \
-    PostpaidAccountBalance
-
+from apps.orders.models import AccessTokens, AvailableRecharge, Orders, OrdersDetails, VerifiedAccounts
 
 # Register your models here.
 
@@ -27,5 +25,4 @@ class OrdersDetailAdmin(admin.ModelAdmin):
     list_display = ('id', 'order', "transaction_id",)
 
 
-admin.site.register(VerifiedNumbers)
-admin.site.register(PostpaidAccountBalance)
+admin.site.register(VerifiedAccounts)

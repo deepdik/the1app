@@ -12,24 +12,22 @@ from apps.orders.utils.utils import get_transaction_id
 from utils.exceptions import APIException500, APIException503, APIException400
 
 
-class DUPostpaidAPIClient:
+class EtisalatAPIClient:
 
     def __init__(self):
         self.base_url = settings.MBME_BASE_URL
 
-    def get_customer_balance(self, number):
-        """Use API Method 'balance' to know the outstanding amount of the customer using
-            unique transaction ID."""
-        # data = self.get_balance_from_db(number)
-        # if data:
-        #     return data
-
+    def verify_customer_account(self, number, service_offered):
+        """API Method to check the validity of nol card and topup amount must be
+            called with unique txn id."""
+        trans_id = get_transaction_id()
         payload = {
-            "transactionId": get_transaction_id(),
+            "transactionId": trans_id,
             "merchantId": settings.MBME_MERCHANT_ID,
-            "serviceId": settings.DU_POSTPAID_SERVICE_ID,
+            "serviceId": settings.ETISALAT_SERVICE_ID,
             "method": "balance",
-            "reqField1": number
+            "reqField1": str(number),
+            "reqField2": service_offered
         }
         token = GeneralAPIClient().get_access_token()
         if not token:
@@ -46,48 +44,45 @@ class DUPostpaidAPIClient:
         )
 
         if not status:
-            print("Error in balance API call...")
+            print("Error in balance API call ...")
             raise APIException503()
 
-        return self.save_balance_in_db(resp, number)
+        return self.__get_response_message(resp, number, trans_id)
 
-    def save_balance_in_db(self, resp, recharge_number):
+    def __get_response_message(self, resp, recharge_number, trans_id):
         """
         """
         if resp.get("responseCode") == "000":
-            data = {"balance": resp.get("responseData").get("amount"),
-                    "customer_name": resp.get("responseData").get("custName"),
-                    "recharge_transaction_id": resp.get("responseData").get("resField1"),
-                    "recharge_number": recharge_number}
-            return data
+            data = {
+                "recharge_transaction_id": trans_id,
+                "recharge_number": recharge_number,
+                "service_offered": resp.get("responseData", {}).get("resField1"),
+                "current_balance": resp.get("responseData", {}).get("amount"),
+                "min_recharge": resp.get("responseData", {}).get("resField5"),
+                "max_recharge": resp.get("responseData", {}).get("resField6")
 
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E02":
-            raise APIException400({
-                "error": resp.get("billerMessage")
-            })
+            }
+            return "Card is Valid", data
 
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E07":
-            raise APIException400({
-                "error": resp.get("billerMessage")
-            })
-
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E07":
-            raise APIException400({
-                "error": resp.get("billerMessage")
-            })
+        # elif resp.get("responseCode") == "302":
+        #     raise APIException400({
+        #         "error": resp.get("billerMessage")
+        #     })
         else:
-            raise APIException503({
-                "error": "Service is not available. Please try after some time"
+            raise APIException400({
+                "error": "Invalid number"
             })
 
-    def do_recharge(self, number, amount, recharge_transaction_id):
+    def do_recharge(self, number, service_offered, current_balance, amount, recharge_transaction_id):
         payload = {
-            "transactionId": recharge_transaction_id,
+            "transactionId": get_transaction_id(),
             "merchantId": settings.MBME_MERCHANT_ID,
-            "serviceId": settings.DU_POSTPAID_SERVICE_ID,
+            "serviceId": settings.ETISALAT_SERVICE_ID,
             "method": "pay",
             "reqField1": number,
-            "reqField2": "CREDIT_ACCOUNT_PAY",
+            "reqField2": service_offered,
+            "reqField3": recharge_transaction_id,
+            "reqField4": current_balance,
             "paidAmount": amount
         }
         token = GeneralAPIClient().get_access_token()

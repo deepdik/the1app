@@ -17,7 +17,13 @@ ENV PYTHONUNBUFFERED 1
 
 RUN apt-get update
 
+ENV ENV=DEV
 RUN apt-get install -y libgdal-dev
+RUN apt-get install -y cron
+RUN apt-get install -y vim nano
+RUN touch /tmp/scheduled_job.log
+RUN chmod 777 /tmp/scheduled_job.log
+
 
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt

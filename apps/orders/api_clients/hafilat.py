@@ -12,24 +12,20 @@ from apps.orders.utils.utils import get_transaction_id
 from utils.exceptions import APIException500, APIException503, APIException400
 
 
-class DUPostpaidAPIClient:
+class HafilatAPIClient:
 
     def __init__(self):
         self.base_url = settings.MBME_BASE_URL
 
-    def get_customer_balance(self, number):
-        """Use API Method 'balance' to know the outstanding amount of the customer using
-            unique transaction ID."""
-        # data = self.get_balance_from_db(number)
-        # if data:
-        #     return data
+    def verify_customer_card(self, number):
+        """Method to check the balance amount/due amount."""
 
         payload = {
             "transactionId": get_transaction_id(),
             "merchantId": settings.MBME_MERCHANT_ID,
-            "serviceId": settings.DU_POSTPAID_SERVICE_ID,
+            "serviceId": settings.HAFILAT_SERVICE_ID,
             "method": "balance",
-            "reqField1": number
+            "reqField1": number,
         }
         token = GeneralAPIClient().get_access_token()
         if not token:
@@ -46,34 +42,25 @@ class DUPostpaidAPIClient:
         )
 
         if not status:
-            print("Error in balance API call...")
+            print("Error in balance API call ...")
             raise APIException503()
 
-        return self.save_balance_in_db(resp, number)
+        return self.__get_response_message(resp, number)
 
-    def save_balance_in_db(self, resp, recharge_number):
+    def __get_response_message(self, resp, recharge_number):
         """
         """
-        if resp.get("responseCode") == "000":
-            data = {"balance": resp.get("responseData").get("amount"),
-                    "customer_name": resp.get("responseData").get("custName"),
-                    "recharge_transaction_id": resp.get("responseData").get("resField1"),
-                    "recharge_number": recharge_number}
-            return data
+        if resp.get("responseCode") == "000" and resp.get("responseData", {}).get("resField1"):
+            return resp.get("responseData", {}).get("resField4"), {}
 
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E02":
+        elif resp.get("responseCode") == "000" and not resp.get("responseData", {}).get("resField1"):
             raise APIException400({
-                "error": resp.get("billerMessage")
+                "error": resp.get("responseData", {}).get("resField4")
             })
 
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E07":
+        elif resp.get("responseCode") == "302":
             raise APIException400({
-                "error": resp.get("billerMessage")
-            })
-
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E07":
-            raise APIException400({
-                "error": resp.get("billerMessage")
+                "error": "Invalid card number. Check your card and try again"
             })
         else:
             raise APIException503({
@@ -82,12 +69,12 @@ class DUPostpaidAPIClient:
 
     def do_recharge(self, number, amount, recharge_transaction_id):
         payload = {
-            "transactionId": recharge_transaction_id,
+            "transactionId": get_transaction_id(),
             "merchantId": settings.MBME_MERCHANT_ID,
-            "serviceId": settings.DU_POSTPAID_SERVICE_ID,
+            "serviceId": settings.NOL_TOPUP_SERVICE_ID,
             "method": "pay",
             "reqField1": number,
-            "reqField2": "CREDIT_ACCOUNT_PAY",
+            "reqField2": "6",
             "paidAmount": amount
         }
         token = GeneralAPIClient().get_access_token()

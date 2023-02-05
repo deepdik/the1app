@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from apps.orders.api_clients.platform import GeneralAPIClient
 from apps.orders.models import APIMethodEnum, ORDER_SUB_STATUS, RECHARGE_PROCESSING, RECHARGE_FAILED, \
-    RECHARGE_COMPLETED, VerifiedNumbers, MBME, DU_PREPAID, DATA
+    RECHARGE_COMPLETED, VerifiedAccounts, MBME, DU_PREPAID, DATA
 from apps.orders.utils.api_call_wrapper import sync_api_caller
 from apps.orders.utils.utils import get_transaction_id
 from utils.exceptions import APIException500, APIException503
@@ -57,20 +57,20 @@ class DUPrepaidAPIClient:
 
     def __save_in_db(self, recharge_number, is_valid):
         # save in DB
-        VerifiedNumbers.objects.update_or_create(
+        VerifiedAccounts.objects.update_or_create(
             service_type=DU_PREPAID,
             recharge_number=recharge_number,
             service_provider=MBME,
             defaults={"valid_upto": timezone.now() + datetime.timedelta(days=10),
-                      "recharge_type": DATA, "is_valid": is_valid}
+                    "is_valid": is_valid}
         )
 
     def __check_from_db(self, recharge_number):
         # check first in DB
-        qs = VerifiedNumbers.objects.filter(
+        qs = VerifiedAccounts.objects.filter(
             service_type=DU_PREPAID,
-            recharge_number=recharge_number,
             service_provider=MBME,
+            recharge_number=recharge_number,
             valid_upto__gte=timezone.now()
         )
         if qs.exists():

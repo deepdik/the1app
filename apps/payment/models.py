@@ -75,7 +75,7 @@ class PaymentTransactions(models.Model):
     payment_intent = models.CharField(max_length=500)
     gateway_response = models.TextField()
     status = models.CharField(max_length=50, choices=TRANSACTION_STATUS)
-    amount_paid = models.FloatField(blank=True, null=True)
+    # amount_paid = models.FloatField(blank=True, null=True)
 
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)

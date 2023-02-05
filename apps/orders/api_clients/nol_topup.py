@@ -6,30 +6,30 @@ from django.utils import timezone
 from apps.orders.api_clients.platform import GeneralAPIClient
 from apps.orders.models import APIMethodEnum, ORDER_SUB_STATUS, RECHARGE_PROCESSING, RECHARGE_FAILED, \
     RECHARGE_COMPLETED, DU_POSTPAID, MBME
+
 from apps.orders.utils.api_call_wrapper import sync_api_caller
 from apps.orders.utils.process_response import process_mbme_response
 from apps.orders.utils.utils import get_transaction_id
+from config.config import NOL_TOPUP_MIN, NOL_TOPUP_MAX
 from utils.exceptions import APIException500, APIException503, APIException400
 
 
-class DUPostpaidAPIClient:
+class NOLTopupAPIClient:
 
     def __init__(self):
         self.base_url = settings.MBME_BASE_URL
 
-    def get_customer_balance(self, number):
-        """Use API Method 'balance' to know the outstanding amount of the customer using
-            unique transaction ID."""
-        # data = self.get_balance_from_db(number)
-        # if data:
-        #     return data
-
+    def verify_customer_card(self, number, amount):
+        """API Method to check the validity of nol card and topup amount must be
+            called with unique txn id."""
+        transaction_id = get_transaction_id()
         payload = {
-            "transactionId": get_transaction_id(),
+            "transactionId": transaction_id,
             "merchantId": settings.MBME_MERCHANT_ID,
-            "serviceId": settings.DU_POSTPAID_SERVICE_ID,
-            "method": "balance",
-            "reqField1": number
+            "serviceId": settings.NOL_TOPUP_SERVICE_ID,
+            "method": "checkvalidity",
+            "reqField1": number,
+            "reqField2": amount,
         }
         token = GeneralAPIClient().get_access_token()
         if not token:
@@ -46,48 +46,47 @@ class DUPostpaidAPIClient:
         )
 
         if not status:
-            print("Error in balance API call...")
+            print("Error in balance API call ...")
             raise APIException503()
 
-        return self.save_balance_in_db(resp, number)
+        return self.__get_response_message(resp, number, transaction_id)
 
-    def save_balance_in_db(self, resp, recharge_number):
+    def __get_response_message(self, resp, recharge_number, transaction_id):
         """
         """
         if resp.get("responseCode") == "000":
-            data = {"balance": resp.get("responseData").get("amount"),
-                    "customer_name": resp.get("responseData").get("custName"),
-                    "recharge_transaction_id": resp.get("responseData").get("resField1"),
-                    "recharge_number": recharge_number}
-            return data
-
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E02":
-            raise APIException400({
-                "error": resp.get("billerMessage")
-            })
-
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E07":
-            raise APIException400({
-                "error": resp.get("billerMessage")
-            })
-
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E07":
-            raise APIException400({
-                "error": resp.get("billerMessage")
-            })
+            data = {
+                "recharge_transaction_id": transaction_id,
+                "recharge_number": recharge_number,
+                "min_recharge": NOL_TOPUP_MIN,
+                "max_recharge": NOL_TOPUP_MAX
+            }
+            return "Card is Valid", data
         else:
-            raise APIException503({
-                "error": "Service is not available. Please try after some time"
+            raise APIException400({
+                "error": "Invalid card number"
             })
+        # elif resp.get("responseCode") == "302":
+        #     raise APIException400({
+        #         "error": "Invalid card number"
+        #     })
+        # else:
+        #     raise APIException503({
+        #         "error": "Service is not available. Please try after some time"
+        #     })
 
     def do_recharge(self, number, amount, recharge_transaction_id):
+        """
+        API Method to pay for nol top up must be called with the same
+        transaction id used in check validity request.
+        """
         payload = {
             "transactionId": recharge_transaction_id,
             "merchantId": settings.MBME_MERCHANT_ID,
-            "serviceId": settings.DU_POSTPAID_SERVICE_ID,
+            "serviceId": settings.NOL_TOPUP_SERVICE_ID,
             "method": "pay",
             "reqField1": number,
-            "reqField2": "CREDIT_ACCOUNT_PAY",
+            "reqField2": "6",
             "paidAmount": amount
         }
         token = GeneralAPIClient().get_access_token()

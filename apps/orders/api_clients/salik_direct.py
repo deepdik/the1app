@@ -1,7 +1,4 @@
-from datetime import datetime, timedelta
-
 from django.conf import settings
-from django.utils import timezone
 
 from apps.orders.api_clients.platform import GeneralAPIClient
 from apps.orders.models import APIMethodEnum, ORDER_SUB_STATUS, RECHARGE_PROCESSING, RECHARGE_FAILED, \
@@ -9,27 +6,25 @@ from apps.orders.models import APIMethodEnum, ORDER_SUB_STATUS, RECHARGE_PROCESS
 from apps.orders.utils.api_call_wrapper import sync_api_caller
 from apps.orders.utils.process_response import process_mbme_response
 from apps.orders.utils.utils import get_transaction_id
+from config.config import SALIK_DIRECT_MIN, SALIK_DIRECT_MAX
 from utils.exceptions import APIException500, APIException503, APIException400
 
 
-class DUPostpaidAPIClient:
+class SalikDirectAPIClient:
 
     def __init__(self):
         self.base_url = settings.MBME_BASE_URL
 
-    def get_customer_balance(self, number):
-        """Use API Method 'balance' to know the outstanding amount of the customer using
-            unique transaction ID."""
-        # data = self.get_balance_from_db(number)
-        # if data:
-        #     return data
+    def verify_customer_card(self, number, account_pin):
+        """Method to check account details by entering SALIK account Number."""
 
         payload = {
             "transactionId": get_transaction_id(),
             "merchantId": settings.MBME_MERCHANT_ID,
-            "serviceId": settings.DU_POSTPAID_SERVICE_ID,
+            "serviceId": settings.SALIK_DIRECT_SERVICE_ID,
             "method": "balance",
-            "reqField1": number
+            "reqField1": number,  # Account ID / Number to identify the user account
+            "reqField2": account_pin  # Account Pin / Pin to validate the user
         }
         token = GeneralAPIClient().get_access_token()
         if not token:
@@ -49,46 +44,42 @@ class DUPostpaidAPIClient:
             print("Error in balance API call...")
             raise APIException503()
 
-        return self.save_balance_in_db(resp, number)
+        return self.__get_response_message(resp, number)
 
-    def save_balance_in_db(self, resp, recharge_number):
+    def __get_response_message(self, resp, recharge_number):
         """
         """
         if resp.get("responseCode") == "000":
-            data = {"balance": resp.get("responseData").get("amount"),
-                    "customer_name": resp.get("responseData").get("custName"),
-                    "recharge_transaction_id": resp.get("responseData").get("resField1"),
-                    "recharge_number": recharge_number}
-            return data
+            data = {
+                "recharge_transaction_id": resp["responseData"].get("providerTransactionId"),
+                "recharge_number": recharge_number,
+                "customer_name": resp["responseData"].get("cusName"),
+                "customer_balance": resp["responseData"].get("amount"),
+                "min_recharge": SALIK_DIRECT_MIN,
+                "max_recharge": SALIK_DIRECT_MAX,
+                "multiple_of": 50
+            }
+            return True, "Account Verified successfully", data
 
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E02":
+        elif resp.get("responseCode") == "302":
             raise APIException400({
-                "error": resp.get("billerMessage")
-            })
-
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E07":
-            raise APIException400({
-                "error": resp.get("billerMessage")
-            })
-
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E07":
-            raise APIException400({
-                "error": resp.get("billerMessage")
+                "error": "Invalid Account Number/PIN Code"
             })
         else:
             raise APIException503({
                 "error": "Service is not available. Please try after some time"
             })
 
-    def do_recharge(self, number, amount, recharge_transaction_id):
+    def do_recharge(self, number, amount, account_pin, recharge_transaction_id):
         payload = {
-            "transactionId": recharge_transaction_id,
+            "transactionId": get_transaction_id(),
             "merchantId": settings.MBME_MERCHANT_ID,
-            "serviceId": settings.DU_POSTPAID_SERVICE_ID,
+            "serviceId": settings.SALIK_DIRECT_SERVICE_ID,
             "method": "pay",
+            "paidAmount": amount,
             "reqField1": number,
-            "reqField2": "CREDIT_ACCOUNT_PAY",
-            "paidAmount": amount
+            "reqField2": account_pin,
+            "reqField3": recharge_transaction_id
         }
         token = GeneralAPIClient().get_access_token()
         if not token:
@@ -118,6 +109,7 @@ class DUPostpaidAPIClient:
             return True, RECHARGE_COMPLETED
         elif response.get("responseCode") == "111":
             return True, RECHARGE_PROCESSING  # processing
+        elif response.get("responseCode") == '01':
+            raise APIException400({"error": response.get("responseMessage")})
         else:
             return False, RECHARGE_FAILED  # failed
-

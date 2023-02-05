@@ -5,7 +5,7 @@ from enum import Enum
 from django.db.models import Sum
 from django.utils import timezone
 
-from apps.orders.models import Orders, DU_PREPAID, DU_POSTPAID
+from apps.orders.models import Orders, DU_PREPAID, DU_POSTPAID, SALIK_DIRECT, HAFILAT, NOL_TOPUP, ETISALAT
 from apps.orders.serializers import OrderListSerializer, OrderDetailSerializer, OrderListViewSerializer
 from utils.exceptions import APIException400, APIException404
 
@@ -24,8 +24,12 @@ class MonthFilter(Enum):
 
 
 class OrderHistoryCategory(Enum):
-    PREPAID = "1"
-    POSTPAID = "2"
+    ALL = '0'
+    DU = "1"
+    ETISALAT = "3"
+    NOL_TOPUP = "4"
+    HAFILAT = "5"
+    SALIK_DIRECT = "6"
 
 
 class ORDER_TYPE(Enum):
@@ -48,20 +52,15 @@ class OrderHistory:
             raise APIException400({
                 "error": "order_type is required"
             })
-        qs = Orders.objects.filter()
 
         if self.request.GET.get('order_type') in (ORDER_TYPE.MOBILE.value, ORDER_TYPE.ANY.value):
-
+            qs = Orders.objects.filter()
             if self.request.GET.get('search_by'):
                 print(self.request.GET.get('search_by'))
                 qs = qs.filter(order_id=self.request.GET.get('search_by'))
 
             in_filter = []
-            if self.request.GET.get('category') == OrderHistoryCategory.PREPAID.value:
-                in_filter.append(DU_PREPAID)
-            elif self.request.GET.get('category') == OrderHistoryCategory.POSTPAID.value:
-                in_filter.append(DU_POSTPAID)
-            else:
+            if self.request.GET.get('category') in (OrderHistoryCategory.DU.value, OrderHistoryCategory.ALL.value):
                 in_filter = [DU_PREPAID, DU_POSTPAID]
 
             qs = qs.filter(
@@ -77,12 +76,44 @@ class OrderHistory:
             elif self.request.GET.get('month') == MonthFilter.THIS_YEAR.value:
                 qs = qs.filter(created_at__year=timezone.now().year)
 
-            # data["total"] = qs.count()
+            #data["total_results"] = qs.count()
             qs = qs[offset:limit + offset]
             data["mobile_recharge"] = OrderListSerializer(qs, many=True).data
 
         if self.request.GET.get('order_type') in (ORDER_TYPE.TRANSPORT.value, ORDER_TYPE.ANY.value):
-            data["transport_recharge"] = []
+
+            qs = Orders.objects.filter()
+            if self.request.GET.get('search_by'):
+                print(self.request.GET.get('search_by'))
+                qs = qs.filter(order_id=self.request.GET.get('search_by'))
+
+            in_filter = []
+            if self.request.GET.get('category') == OrderHistoryCategory.SALIK_DIRECT.value:
+                in_filter.append(SALIK_DIRECT)
+            elif self.request.GET.get('category') == OrderHistoryCategory.ETISALAT.value:
+                in_filter.append(ETISALAT)
+            elif self.request.GET.get('category') == OrderHistoryCategory.HAFILAT.value:
+                in_filter.append(HAFILAT)
+            elif self.request.GET.get('category') == OrderHistoryCategory.NOL_TOPUP.value:
+                in_filter.append(NOL_TOPUP)
+            elif self.request.GET.get('category') == OrderHistoryCategory.ALL.value:
+                in_filter = [ETISALAT, HAFILAT, NOL_TOPUP, SALIK_DIRECT]
+
+            if self.request.GET.get('month') == MonthFilter.TODAY.value:
+                qs = qs.filter(created_at__date=timezone.now().today())
+            elif self.request.GET.get('month') == MonthFilter.THIS_WEEK.value:
+                qs = qs.filter(created_at__week=timezone.now().isocalendar()[1])
+            elif self.request.GET.get('month') == MonthFilter.THIS_MONTH.value:
+                qs = qs.filter(created_at__month=timezone.now().month)
+            elif self.request.GET.get('month') == MonthFilter.THIS_YEAR.value:
+                qs = qs.filter(created_at__year=timezone.now().year)
+
+            qs = qs.filter(
+                service_type__in=in_filter
+            ).order_by("-created_at")
+            #data["total_results"] = qs.count()
+            qs = qs[offset:limit + offset]
+            data["transport_recharge"] = OrderListSerializer(qs, many=True).data
 
         return data
 

@@ -46,6 +46,9 @@ class Stripe(object):
             'recharge_type': kwargs.get("recharge_type"),
             'recharge_transaction_id': kwargs.get("recharge_transaction_id"),
             'amount': amount,
+            'account_pin': kwargs.get("account_pin"),
+            'service_offered': kwargs.get("service_offered"),
+            'current_balance': kwargs.get("current_balance"),
             'currency': currency,
         }
         customer_id = self.__get_or_create_customer(user)

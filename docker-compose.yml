@@ -11,6 +11,7 @@ services:
     command: sh -c "python manage.py makemigrations &&
                     python manage.py migrate &&
                     python manage.py collectstatic --no-input &&
+                    service cron start &&
                     python manage.py runserver 0.0.0.0:8002"
 
     volumes:

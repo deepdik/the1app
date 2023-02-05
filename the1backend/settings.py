@@ -115,7 +115,7 @@ DATABASES = {
         'NAME': 'the1db',
         'USER': 'the1user',
         'PASSWORD': 'the1@321',
-        'HOST': '127.0.0.1',
+        'HOST': 'localhost',
         'PORT': '3306',
     }
 }
@@ -171,8 +171,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CRONJOBS = [
 
-    # ('* */7 * * *', 'account.cron.upload_news'),
-    ('*/5 * * * *', 'apps.orders.cron.scheduled.refresh_access_token')
+    ('* */7 * * *', 'account.cron.upload_news', '>> /tmp/scheduled_job.log'),
+    # ('*/5 * * * *', 'apps.orders.cron.scheduled.refresh_access_token')
 ]
 
 LOGGING = {

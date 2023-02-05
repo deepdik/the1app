@@ -3,11 +3,17 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from account.cron import upload_news
 from apps.orders.api_clients.du_postpaid import DUPostpaidAPIClient
 from apps.orders.api_clients.du_prepaid import DUPrepaidAPIClient
+from apps.orders.api_clients.etisalat import EtisalatAPIClient
+from apps.orders.api_clients.hafilat import HafilatAPIClient
+from apps.orders.api_clients.nol_topup import NOLTopupAPIClient
+from apps.orders.api_clients.salik_direct import SalikDirectAPIClient
 from apps.orders.models import AvailableRecharge, MBME, Orders
 from apps.orders.serializers import PlaceOrderSerializer, OrderDetailSerializer, \
-    OrderDetailViewSerializer, OrderListViewSerializer
+    OrderDetailViewSerializer, OrderListViewSerializer, ValidateNOLSerializer, ValidateSalikDirectSerializer, \
+    ValidateEtisalatSerializer, ValidateHafilatSerializer
 from apps.orders.utils.order_history_service import OrderHistory
 from apps.orders.utils.order_place_service import OrderService
 from utils.exceptions import APIException400
@@ -63,7 +69,7 @@ class OrdersHistoryDetailAPIView(APIView):
         return response(message="success", data=data)
 
 
-class CustomerBalanceAPIView(APIView):
+class DUPostpaidBalanceAPIView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
@@ -80,7 +86,7 @@ class CustomerBalanceAPIView(APIView):
         })
 
 
-class VerifyPrepaidAPIView(APIView):
+class VerifyDUPrepaidAPIView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
@@ -99,6 +105,65 @@ class VerifyPrepaidAPIView(APIView):
         raise APIException400({
             "error": "number is required"
         })
+
+
+class VerifyNOLCustomerAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        card_number = self.request.GET.get('card_number')
+        amount = self.request.GET.get('amount')
+        serializer = ValidateNOLSerializer(data={"card_number": card_number, "amount": amount})
+        serializer.is_valid(raise_exception=True)
+
+        msg, data = NOLTopupAPIClient().verify_customer_card(card_number, amount)
+        return response(message=msg, data=data)
+
+
+class VerifySalikDirectCustomerAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        data = {"account_number": self.request.GET.get('account_number'),
+                "account_pin": self.request.GET.get('account_pin'), "amount": self.request.GET.get('amount')}
+
+        serializer = ValidateSalikDirectSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        status, msg, data = SalikDirectAPIClient().verify_customer_card(
+            serializer.validated_data["account_number"],
+            serializer.validated_data["account_pin"],
+        )
+        return response(message=msg, data=data)
+
+
+class VerifyHafilatCustomerAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        data = {"card_number": self.request.GET.get('card_number'),
+                }
+        serializer = ValidateHafilatSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        msg, data = HafilatAPIClient().verify_customer_card(
+            serializer.validated_data["card_number"],
+        )
+        return response(message=msg, data=data)
+
+
+class VerifyEtisalatCustomerAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        data = {"account_number": self.request.GET.get('account_number'),
+                "service_offered": self.request.GET.get('service_offered')}
+        serializer = ValidateEtisalatSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        msg, data = EtisalatAPIClient().verify_customer_account(
+            serializer.validated_data["account_number"],
+            serializer.validated_data["service_offered"],
+        )
+        return response(message=msg, data=data)
+
 
 
 class OrderViewSet(viewsets.ModelViewSet):

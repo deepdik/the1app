@@ -82,7 +82,12 @@ class StripePaymentAPIView(APIView):
             recharge_transaction_id=serializer.validated_data.get('recharge_transaction_id'),
             account_pin=serializer.validated_data.get('account_pin'),
             service_offered=serializer.validated_data.get('service_offered'),
-            current_balance=serializer.validated_data.get('current_balance')
+            current_balance=serializer.validated_data.get('current_balance'),
+            provider_transaction_id=serializer.validated_data.get('provider_transaction_id'),
+            max_allowed=serializer.validated_data.get('max_allowed'),
+            product_code=serializer.validated_data.get('product_code'),
+            item_code=serializer.validated_data.get('item_code'),
+
         )
         return response(message=resp["detail"], status_code=resp['status_code'], data=resp["data"])
 

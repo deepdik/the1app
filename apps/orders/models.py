@@ -29,10 +29,13 @@ SERVICE_CHOICES = (
     (SALIK_DIRECT, "SALIK_DIRECT")
 )
 
-DATA, MINUTE = "1", "2"
+DATA, MINUTE, HAFILAT_T_PURSE, HAFILAT_PASS = "1", "2", "3", "4"
+
 RECHARGE_TYPE = (
     (DATA, "DATA"),
-    (MINUTE, "MINUTE")
+    (MINUTE, "MINUTE"),
+    (HAFILAT_T_PURSE, "HAFILAT_T_PURSE"),
+    (HAFILAT_PASS, "HAFILAT_PASS")
 )
 
 # GSM for postpaid GSM, DEL for Landline telephones,
@@ -106,7 +109,7 @@ class AccessTokens(models.Model):
 class VerifiedAccounts(models.Model):
     service_type = models.CharField(max_length=100, choices=SERVICE_CHOICES)
     service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)
-    recharge_number = models.CharField(max_length=10)
+    recharge_number = models.CharField(max_length=30)
     is_valid = models.BooleanField(default=False)
     valid_upto = models.DateTimeField()
     response = models.JSONField(blank=True, null=True)
@@ -147,7 +150,7 @@ class Orders(models.Model):
     service_type = models.CharField(max_length=100, choices=SERVICE_CHOICES)
     recharge_type = models.CharField(max_length=100, choices=RECHARGE_TYPE)
     service_provider = models.CharField(max_length=100, choices=SERVICES_PROVIDER)
-    recharge_number = models.CharField(max_length=10)
+    recharge_number = models.CharField(max_length=30)
     amount = models.FloatField()
 
     status = models.CharField(max_length=100, choices=ORDER_STATUS)

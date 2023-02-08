@@ -50,6 +50,10 @@ class Stripe(object):
             'service_offered': kwargs.get("service_offered"),
             'current_balance': kwargs.get("current_balance"),
             'currency': currency,
+            'provider_transaction_id': kwargs.get("provider_transaction_id"),
+            'max_allowed': kwargs.get("max_allowed"),
+            'product_code': kwargs.get("product_code"),
+            'item_code': kwargs.get("item_code"),
         }
         customer_id = self.__get_or_create_customer(user)
         intent = stripe.PaymentIntent.create(

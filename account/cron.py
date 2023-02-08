@@ -14,6 +14,7 @@ def upload_news():
                                               language='en',
                                               sort_by='relevancy',
                                               page_size=50)
+
         try:
             total_page = all_articles['totalResults'] // 20
         except:

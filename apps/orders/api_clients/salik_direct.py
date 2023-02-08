@@ -17,9 +17,9 @@ class SalikDirectAPIClient:
 
     def verify_customer_card(self, number, account_pin):
         """Method to check account details by entering SALIK account Number."""
-
+        trans_id = get_transaction_id()
         payload = {
-            "transactionId": get_transaction_id(),
+            "transactionId": trans_id,
             "merchantId": settings.MBME_MERCHANT_ID,
             "serviceId": settings.SALIK_DIRECT_SERVICE_ID,
             "method": "balance",
@@ -44,19 +44,20 @@ class SalikDirectAPIClient:
             print("Error in balance API call...")
             raise APIException503()
 
-        return self.__get_response_message(resp, number)
+        return self.__get_response_message(resp, number, trans_id)
 
-    def __get_response_message(self, resp, recharge_number):
+    def __get_response_message(self, resp, recharge_number, trans_id):
         """
         """
         if resp.get("responseCode") == "000":
             data = {
-                "recharge_transaction_id": resp["responseData"].get("providerTransactionId"),
+                "recharge_transaction_id": trans_id,
                 "recharge_number": recharge_number,
                 "customer_name": resp["responseData"].get("cusName"),
                 "customer_balance": resp["responseData"].get("amount"),
                 "min_recharge": SALIK_DIRECT_MIN,
                 "max_recharge": SALIK_DIRECT_MAX,
+                "provider_transaction_id": resp["responseData"].get("providerTransactionId"),
                 "multiple_of": 50
             }
             return True, "Account Verified successfully", data
@@ -70,16 +71,16 @@ class SalikDirectAPIClient:
                 "error": "Service is not available. Please try after some time"
             })
 
-    def do_recharge(self, number, amount, account_pin, recharge_transaction_id):
+    def do_recharge(self, number, amount, account_pin, recharge_transaction_id, provider_transaction_id):
         payload = {
-            "transactionId": get_transaction_id(),
+            "transactionId": recharge_transaction_id,
             "merchantId": settings.MBME_MERCHANT_ID,
             "serviceId": settings.SALIK_DIRECT_SERVICE_ID,
             "method": "pay",
             "paidAmount": amount,
             "reqField1": number,
             "reqField2": account_pin,
-            "reqField3": recharge_transaction_id
+            "reqField3": provider_transaction_id
         }
         token = GeneralAPIClient().get_access_token()
         if not token:

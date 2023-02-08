@@ -59,10 +59,11 @@ class EtisalatAPIClient:
                 "service_offered": resp.get("responseData", {}).get("resField1"),
                 "current_balance": resp.get("responseData", {}).get("amount"),
                 "min_recharge": resp.get("responseData", {}).get("resField5"),
-                "max_recharge": resp.get("responseData", {}).get("resField6")
+                "max_recharge": resp.get("responseData", {}).get("resField6"),
+                "provider_transaction_id": resp.get("responseData", {}).get("providerTransactionId")
 
             }
-            return "Card is Valid", data
+            return resp.get("responseMessage"), data
 
         # elif resp.get("responseCode") == "302":
         #     raise APIException400({
@@ -73,15 +74,16 @@ class EtisalatAPIClient:
                 "error": "Invalid number"
             })
 
-    def do_recharge(self, number, service_offered, current_balance, amount, recharge_transaction_id):
+    def do_recharge(self, number, service_offered, current_balance, amount,
+                    recharge_transaction_id, provider_transaction_id):
         payload = {
-            "transactionId": get_transaction_id(),
+            "transactionId": recharge_transaction_id,
             "merchantId": settings.MBME_MERCHANT_ID,
             "serviceId": settings.ETISALAT_SERVICE_ID,
             "method": "pay",
             "reqField1": number,
             "reqField2": service_offered,
-            "reqField3": recharge_transaction_id,
+            "reqField3": provider_transaction_id,
             "reqField4": current_balance,
             "paidAmount": amount
         }

@@ -5,12 +5,13 @@ from django.conf import settings
 from apps.orders.api_clients.du_postpaid import DUPostpaidAPIClient
 from apps.orders.api_clients.du_prepaid import DUPrepaidAPIClient
 from apps.orders.api_clients.etisalat import EtisalatAPIClient
+from apps.orders.api_clients.hafilat import HafilatAPIClient
 from apps.orders.api_clients.nol_topup import NOLTopupAPIClient
 from apps.orders.api_clients.platform import GeneralAPIClient
 from apps.orders.api_clients.salik_direct import SalikDirectAPIClient
 from apps.orders.models import Orders, OrdersDetails, FAILED, PAYMENT_FAILED, PROCESSING, RECHARGE_PROCESSING, \
     COMPLETED, PAYMENT_PROCESSING, DATA, MINUTE, RECHARGE_COMPLETED, RECHARGE_FAILED, MBME, DU_PREPAID, DU_POSTPAID, \
-    NOL_TOPUP, SALIK_DIRECT, ETISALAT
+    NOL_TOPUP, SALIK_DIRECT, ETISALAT, HAFILAT
 from apps.payment.models import PaymentTransactions, TRANSACTION_FAILED, TRANSACTION_CANCELLED, TRANSACTION_PROCESSING, \
     TRANSACTION_COMPLETED, STRIPE
 from apps.payment.utils.stripe import Stripe
@@ -98,6 +99,10 @@ class OrderService:
                     elif self.payload["data"]["metadata"].get('service_type') == ETISALAT:
                         print(f"Start placing {ETISALAT}")
                         order, status = self.place_etisalat_orders()
+
+                    elif self.payload["data"]["metadata"].get('service_type') == HAFILAT:
+                        print(f"Start placing {HAFILAT}")
+                        order, status = self.place_hafilat_orders()
 
                     if status == RECHARGE_COMPLETED:
                         recharge_status = COMPLETED
@@ -221,9 +226,9 @@ class OrderService:
             self.payload["data"]["metadata"].get("recharge_number"),
             self.payload["data"]["metadata"].get("amount"),
             self.payload["data"]["metadata"].get("account_pin"),
-            self.payload["data"]["metadata"]["recharge_transaction_id"]
+            self.payload["data"]["metadata"]["recharge_transaction_id"],
+            self.payload["data"]["metadata"]["provider_transaction_id"],
         )
-
         order = None
         print(f"GET response for recharge API {rq_satus}, {status}, {resp}")
         if rq_satus and status == RECHARGE_COMPLETED:
@@ -262,7 +267,8 @@ class OrderService:
             self.payload["data"]["metadata"].get("service_offered"),
             self.payload["data"]["metadata"].get("current_balance"),
             self.payload["data"]["metadata"]["amount"],
-            self.payload["data"]["metadata"]["recharge_transaction_id"]
+            self.payload["data"]["metadata"]["recharge_transaction_id"],
+            self.payload["data"]["metadata"]["provider_transaction_id"],
         )
 
         order = None
@@ -294,8 +300,51 @@ class OrderService:
 
         return order, status
 
-    def save_order(self, metadata, status, sub_status):
+    def place_hafilat_orders(self):
+        """
+        number, amount, product_code, item_code
+        """
+        rq_satus, status, resp = HafilatAPIClient().do_recharge(
+            self.payload["data"]["metadata"].get("recharge_number"),
+            self.payload["data"]["metadata"].get("amount"),
+            self.payload["data"]["metadata"]["product_code"],
+            self.payload["data"]["metadata"]["item_code"],
+            self.payload["data"]["metadata"]["max_allowed"],
+            self.payload["data"]["metadata"]["recharge_type"],
+            self.payload["data"]["metadata"]["recharge_transaction_id"]
+        )
 
+        order = None
+        print(f"GET response for recharge API {rq_satus}, {status}, {resp}")
+        if rq_satus and status == RECHARGE_COMPLETED:
+            order = self.save_order(
+                self.payload["data"]["metadata"], COMPLETED, RECHARGE_COMPLETED
+            )
+            transaction_id = self.payload["data"]["metadata"]["recharge_transaction_id"]
+            unique_id = resp.get("responseData", {}).get("providerTransactionId")
+            self.save_in_progress_order(order, 0, resp, transaction_id, unique_id, False)
+        elif rq_satus and status == RECHARGE_PROCESSING:
+            order = self.save_order(
+                self.payload["data"]["metadata"], PROCESSING, RECHARGE_PROCESSING
+            )
+            # if in processing then push it in process queue
+            transaction_id = self.payload["data"]["metadata"]["recharge_transaction_id"]
+            unique_id = resp.get("responseData", {}).get("providerTransactionId")
+            self.save_in_progress_order(order, 1, resp, transaction_id, unique_id)
+
+        elif not rq_satus and status == RECHARGE_FAILED:
+            order = self.save_order(
+                self.payload["data"]["metadata"], PROCESSING, RECHARGE_FAILED
+            )
+            print("Pushing in PROCESSING QUEUE")
+            transaction_id = self.payload["data"]["metadata"]["recharge_transaction_id"]
+            unique_id = resp.get("responseData", {}).get("providerTransactionId")
+            self.save_in_progress_order(order, 1, resp, transaction_id, unique_id)
+
+        return order, status
+
+    def save_order(self, metadata, status, sub_status):
+        print(f"Start saving order => {metadata}, {status}, {sub_status}")
         obj = Orders.objects.create(
             user=self.request.user,
             service_type=metadata.get("service_type"),

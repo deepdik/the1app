@@ -71,10 +71,6 @@ class DUPostpaidAPIClient:
                 "error": resp.get("billerMessage")
             })
 
-        elif resp.get("responseCode") == "302" and resp.get("billerErrorCode") == "E07":
-            raise APIException400({
-                "error": resp.get("billerMessage")
-            })
         else:
             raise APIException503({
                 "error": "Service is not available. Please try after some time"

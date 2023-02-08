@@ -7,7 +7,8 @@ from rest_framework import serializers
 
 from apps.orders.api_clients.du_prepaid import DUPrepaidAPIClient
 from apps.orders.models import SERVICE_CHOICES, RECHARGE_TYPE, AvailableRecharge, SERVICES_PROVIDER, \
-    MBME, DU_PREPAID, MINUTE, DATA, Orders, DU_POSTPAID, SALIK_DIRECT, NOL_TOPUP, ETISALAT
+    MBME, DU_PREPAID, MINUTE, DATA, Orders, DU_POSTPAID, SALIK_DIRECT, NOL_TOPUP, ETISALAT, HAFILAT, HAFILAT_PASS, \
+    HAFILAT_T_PURSE
 from apps.payment.models import PaymentTransactions, PaymentMethods
 from utils.exceptions import APIException400
 
@@ -18,19 +19,23 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
     """
     amount = serializers.FloatField()
     service_type = serializers.ChoiceField(choices=SERVICE_CHOICES)
-    recharge_number = serializers.CharField(max_length=10)
+    recharge_number = serializers.CharField()
     recharge_type = serializers.ChoiceField(choices=RECHARGE_TYPE, allow_blank=True, allow_null=True)
     recharge_transaction_id = serializers.CharField(allow_blank=True, allow_null=True)
     account_pin = serializers.CharField(allow_blank=True, allow_null=True, required=False)
     service_offered = serializers.CharField(allow_blank=True, allow_null=True, required=False)
-    current_balance = serializers.IntegerField(allow_null=True, required=False)
+    current_balance = serializers.CharField(allow_null=True, required=False)
+    provider_transaction_id = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    max_allowed = serializers.CharField(allow_null=True, allow_blank=True, required=True)
+    product_code = serializers.CharField(allow_null=True, allow_blank=True, required=True)
+    item_code = serializers.CharField(allow_null=True, allow_blank=True, required=True)
+
     def validate_recharge_number(self, value):
         if not value.isdigit():
             raise APIException400({
                 "error": "Recharge Number is not valid"
             })
         return value
-
 
     def validate(self, attrs):
         service_type = attrs["service_type"]
@@ -41,6 +46,33 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
         if service_type in (DU_POSTPAID, SALIK_DIRECT, NOL_TOPUP) and not attrs.get("recharge_transaction_id"):
             raise APIException400({
                 "error": "recharge_transaction_id is required"
+            })
+
+        if service_type in (DU_PREPAID, HAFILAT) and not recharge_type:
+            raise APIException400({
+                "error": "recharge_type is required"
+            })
+
+        if service_type == HAFILAT:
+            if not attrs.get("item_code") or not attrs.get("product_code"):
+                raise APIException400({
+                    "error": "item_code and product_code are required for Hafilat recharge"
+                })
+
+            if recharge_type not in (HAFILAT_PASS, HAFILAT_T_PURSE):
+                raise APIException400({
+                    "error": "recharge_type is required for Hafilat"
+                })
+
+            if recharge_type == HAFILAT_PASS and not attrs.get("max_allowed"):
+                raise APIException400({
+                    "error": "max_allowed is required for Hafilat"
+                })
+
+
+        if service_type in (SALIK_DIRECT, ETISALAT) and not attrs.get("provider_transaction_id"):
+            raise APIException400({
+                "error": "provider_transaction_id is required"
             })
 
         if service_type == SALIK_DIRECT:
@@ -71,11 +103,6 @@ class PaymentIntentCreateSerializer(serializers.Serializer):
 
         # for DU prepaid
         if service_type == DU_PREPAID:
-            if not recharge_type:
-                raise APIException400({
-                    "error": f"recharge_type is required for DU Prepaid"
-                })
-
             if recharge_type == MINUTE and (
                     amount < int(settings.DU_PREPAID_MIN) or amount > int(settings.DU_PREPAID_MAX)):
                 raise APIException400({

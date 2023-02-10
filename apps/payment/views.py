@@ -124,7 +124,8 @@ class UserPaymentHistoryListAPIView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
-        data = PaymentManagementService(request).get_user_transactions()
+        user_id = kwargs.get("user_id")
+        data = PaymentManagementService(request).get_user_transactions(user_id)
         return response(data=data, message="success")
 
 

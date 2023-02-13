@@ -14,5 +14,5 @@ django-environ
 pillow
 GDAL==3.2.2.1
 gunicorn
-pdfkit-1.0.0
-XlsxWriter-3.0.8
+pdfkit==1.0.0
+XlsxWriter==3.0.8

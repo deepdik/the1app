@@ -120,7 +120,8 @@ class OrderHistory:
 
     def get_order_detail(self):
         qs = Orders.objects.filter(user=self.request.user,
-                                   order_id=self.request.GET.get('order_id'))
+                                   order_id=self.request.GET.get('order_id')).prefetch_related(
+            "order_detail", "payment")
         if not qs.exists():
             raise APIException404({
                 "error": "no resource found"

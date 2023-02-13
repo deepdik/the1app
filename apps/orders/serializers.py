@@ -30,6 +30,8 @@ class OrderListSerializer(serializers.ModelSerializer):
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     transaction_details = serializers.SerializerMethodField()
+    service_offered = serializers.SerializerMethodField()
+
 
     def get_transaction_details(self, obj):
         payment_obj = obj.payment.first()
@@ -38,9 +40,17 @@ class OrderDetailSerializer(serializers.ModelSerializer):
                     "payment_method": payment_obj.payment_method, "payment_provider": payment_obj.payment_provider}
         return None
 
+    def get_service_offered(self, obj):
+        order_detail = obj.order_detail.first()
+        if order_detail:
+            if order_detail.last_response:
+                return order_detail.last_response.get("responseData", {}).get("resField2")
+
+        return None
+
     class Meta:
         model = Orders
-        fields = ("created_at", "status", "amount", "recharge_number",
+        fields = ("created_at", "status", "amount", "recharge_number","service_offered",
                   "service_type", "recharge_type", "transaction_details", "order_id")
 
 

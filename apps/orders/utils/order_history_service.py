@@ -63,6 +63,9 @@ class OrderHistory:
             if self.request.GET.get('category') in (OrderHistoryCategory.DU.value, OrderHistoryCategory.ALL.value):
                 in_filter = [DU_PREPAID, DU_POSTPAID]
 
+            elif self.request.GET.get('category') in (OrderHistoryCategory.ETISALAT.value, OrderHistoryCategory.ALL.value):
+                in_filter.append(ETISALAT)
+
             qs = qs.filter(
                 service_type__in=in_filter
             ).order_by("-created_at")
@@ -90,8 +93,6 @@ class OrderHistory:
             in_filter = []
             if self.request.GET.get('category') == OrderHistoryCategory.SALIK_DIRECT.value:
                 in_filter.append(SALIK_DIRECT)
-            elif self.request.GET.get('category') == OrderHistoryCategory.ETISALAT.value:
-                in_filter.append(ETISALAT)
             elif self.request.GET.get('category') == OrderHistoryCategory.HAFILAT.value:
                 in_filter.append(HAFILAT)
             elif self.request.GET.get('category') == OrderHistoryCategory.NOL_TOPUP.value:
@@ -142,9 +143,9 @@ class OrderHistory:
                 qs = qs.filter(order_id=self.request.GET.get('search_by'))
 
         if self.request.GET.get('category_filter') == ORDER_TYPE.MOBILE.value:
-            qs = qs.filter(service_type__in=[DU_PREPAID, DU_POSTPAID])
+            qs = qs.filter(service_type__in=[DU_PREPAID, DU_POSTPAID, ETISALAT])
         elif self.request.GET.get('category_filter') == ORDER_TYPE.TRANSPORT.value:
-            qs = qs.filter(service_type__in=[])
+            qs = qs.filter(service_type__in=[SALIK_DIRECT, HAFILAT, NOL_TOPUP])
 
         if self.request.GET.get('from_date') and self.request.GET.get('to_date'):
             qs = qs.filter(
